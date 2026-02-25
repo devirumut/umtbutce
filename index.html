@@ -1322,7 +1322,7 @@
           showModal('yearlyModal');
         });
 
-        document.getElementById('btn_chart').addEventListener('click', () => showModal('chartModal'));
+        document.getElementById('btn_chart').addEventListener('click', () => { updateAnalysisCharts(); showModal('chartModal'); });
 
         document.getElementById('btn_pdf').addEventListener('click', () => {
           const element = document.querySelector('.budget-card');
@@ -1464,7 +1464,217 @@
           try { await syncFromDrive(); } catch (e) { toast(String(e?.message||e), 'err'); }
         });
       }
+      function monthKeyBy(year, monthIndex0){
+        return `${STORAGE_PREFIX}${aylar[monthIndex0]}_${year}`;
+      }
 
+      function yearMonthFromKey(key){
+        // key: butce_OCAK_2026
+        const p = String(key||'').split('_');
+        if (p.length < 3) return null;
+        const monthName = p[1];
+        const year = Number(p[2]);
+        const mi = aylar.indexOf(monthName);
+        if (!Number.isFinite(year) || mi < 0) return null;
+        return { year, monthIndex0: mi };
+      }
+
+      function monthLabelTR(year, monthIndex0){
+        return `${aylar[monthIndex0]} ${year}`;
+      }
+
+      function getMonthEntries(year, monthIndex0){
+        const key = monthKeyBy(year, monthIndex0);
+        const raw = localStorage.getItem(key);
+        const parsed = safeJsonParse(raw, []);
+        return Array.isArray(parsed) ? parsed.map(e => normalizeEntry(e, year, monthIndex0)) : [];
+      }
+
+      function buildYearlyTable(year){
+        const wrap = document.createElement('div');
+
+        const table = document.createElement('table');
+        table.style.width = '100%';
+        table.style.borderCollapse = 'separate';
+        table.style.borderSpacing = '0 8px';
+        table.style.fontSize = '12px';
+
+        const head = document.createElement('tr');
+        ['Ay','Gelir (Alınan)','Gelir (Bekleyen)','Gider (Ödenen)','Gider (Bekleyen+Geciken)','Net (Tahmini)'].forEach(t=>{
+          const th=document.createElement('th');
+          th.textContent=t;
+          th.style.textAlign='left';
+          th.style.padding='10px';
+          th.style.background='var(--header-bg)';
+          th.style.border='1px solid var(--border)';
+          th.style.borderLeft='none';
+          th.style.borderRight='none';
+          th.style.fontWeight='900';
+          head.appendChild(th);
+        });
+        table.appendChild(head);
+
+        let sumIncPaid=0, sumIncPend=0, sumExpPaid=0, sumExpPendOver=0, sumNet=0;
+
+        for (let m=0; m<12; m++){
+          const list = getMonthEntries(year, m);
+          const s = calculateMonth(list, year, m);
+
+          sumIncPaid += s.incPaid;
+          sumIncPend += s.incPending;
+          sumExpPaid += s.expPaid;
+          sumExpPendOver += (s.expPending + s.expOver);
+          sumNet += s.netForecast;
+
+          const tr = document.createElement('tr');
+          const cells = [
+            aylar[m],
+            `${s.incPaid.toLocaleString()} TL`,
+            `${s.incPending.toLocaleString()} TL`,
+            `${s.expPaid.toLocaleString()} TL`,
+            `${(s.expPending + s.expOver).toLocaleString()} TL`,
+            `${s.netForecast.toLocaleString()} TL`,
+          ];
+          cells.forEach((v, i)=>{
+            const td=document.createElement('td');
+            td.textContent=v;
+            td.style.padding='10px';
+            td.style.background='var(--primary)';
+            td.style.border='1px solid var(--border)';
+            td.style.borderLeft='none';
+            td.style.borderRight='none';
+            td.style.fontWeight = i===0 ? '900' : '700';
+            tr.appendChild(td);
+          });
+          table.appendChild(tr);
+        }
+
+        const total = document.createElement('div');
+        total.className = 'chip';
+        total.style.marginTop = '10px';
+        total.innerHTML =
+          `<span class="ico">∑</span>
+           <span>Toplam:</span>
+           <span style="font-weight:900">Gelir ${sumIncPaid.toLocaleString()} TL</span>
+           <span style="opacity:.6">+</span>
+           <span style="font-weight:900">Bekleyen ${sumIncPend.toLocaleString()} TL</span>
+           <span style="opacity:.6">|</span>
+           <span style="font-weight:900">Gider ${sumExpPaid.toLocaleString()} TL</span>
+           <span style="opacity:.6">+</span>
+           <span style="font-weight:900">Bekleyen ${sumExpPendOver.toLocaleString()} TL</span>
+           <span style="opacity:.6">|</span>
+           <span style="font-weight:900">Net ${sumNet.toLocaleString()} TL</span>`;
+
+        wrap.appendChild(table);
+        wrap.appendChild(total);
+        return wrap;
+      }
+
+      function ensureCharts(){
+        if (typeof Chart === 'undefined') return false;
+
+        const ctxM = document.getElementById('chart_month')?.getContext('2d');
+        const ctxT = document.getElementById('chart_trend')?.getContext('2d');
+        const ctxC = document.getElementById('chart_cat')?.getContext('2d');
+        if (!ctxM || !ctxT || !ctxC) return false;
+
+        if (!chartMonth){
+          chartMonth = new Chart(ctxM, {
+            type: 'doughnut',
+            data: { labels: ['Gelir (Tahmin)', 'Gider (Tahmin)'], datasets: [{ data: [0,0] }] },
+            options: { responsive:true, maintainAspectRatio:false, plugins:{ legend:{ position:'bottom' } } }
+          });
+        }
+
+        if (!chartTrend){
+          chartTrend = new Chart(ctxT, {
+            type: 'line',
+            data: { labels: [], datasets: [
+              { label:'Gelir (Tahmin)', data: [] },
+              { label:'Gider (Tahmin)', data: [] },
+              { label:'Net (Tahmin)', data: [] },
+            ]},
+            options: {
+              responsive:true, maintainAspectRatio:false,
+              plugins:{ legend:{ position:'bottom' } },
+              scales:{ y:{ ticks:{ callback:(v)=> `${Number(v).toLocaleString()} TL` } } }
+            }
+          });
+        }
+
+        if (!chartCat){
+          chartCat = new Chart(ctxC, {
+            type: 'bar',
+            data: { labels: [], datasets: [{ label:'Gider (Tahmin)', data: [] }] },
+            options: {
+              responsive:true, maintainAspectRatio:false,
+              plugins:{ legend:{ display:false } },
+              scales:{ y:{ ticks:{ callback:(v)=> `${Number(v).toLocaleString()} TL` } } }
+            }
+          });
+        }
+
+        return true;
+      }
+
+      function updateAnalysisCharts(){
+        const ok = ensureCharts();
+        if (!ok) { toast('Chart.js yüklenmedi', 'err'); return; }
+
+        const y = viewDate.getFullYear();
+        const m = viewDate.getMonth();
+        const list = entries.map(e => normalizeEntry(e, y, m));
+        const s = calculateMonth(list, y, m);
+
+        const incForecast = s.incPaid + s.incPending;
+        const outForecast = s.expPaid + s.expPending + s.expOver;
+
+        // Aylık donut
+        chartMonth.data.datasets[0].data = [incForecast, outForecast];
+        chartMonth.update();
+
+        // 12 ay trend (son 12 ay)
+        const labels = [];
+        const incArr = [];
+        const outArr = [];
+        const netArr = [];
+
+        for (let i=11; i>=0; i--){
+          const d = new Date(y, m - i, 1);
+          const yy = d.getFullYear();
+          const mm = d.getMonth();
+          const lst = getMonthEntries(yy, mm);
+          const ss = calculateMonth(lst, yy, mm);
+          const incF = ss.incPaid + ss.incPending;
+          const outF = ss.expPaid + ss.expPending + ss.expOver;
+          labels.push(monthLabelTR(yy, mm));
+          incArr.push(incF);
+          outArr.push(outF);
+          netArr.push(incF - outF);
+        }
+
+        chartTrend.data.labels = labels;
+        chartTrend.data.datasets[0].data = incArr;
+        chartTrend.data.datasets[1].data = outArr;
+        chartTrend.data.datasets[2].data = netArr;
+        chartTrend.update();
+
+        // Kategori gider dağılımı (mevcut ay)
+        const catMap = new Map();
+        for (const e of list){
+          if (e.type !== 'gider') continue;
+          const v = (e.status === 'paid' || e.status === 'pending' || e.status === 'overdue') ? e.amount : 0;
+          if (!v) continue;
+          const k = e.category || 'Genel';
+          catMap.set(k, (catMap.get(k) || 0) + v);
+        }
+        const catLabels = Array.from(catMap.keys());
+        const catVals = catLabels.map(k => catMap.get(k) || 0);
+
+        chartCat.data.labels = catLabels.length ? catLabels : ['(Kategori yok)'];
+        chartCat.data.datasets[0].data = catVals.length ? catVals : [0];
+        chartCat.update();
+      }
       function init() {
         loadTheme();
         loadCategories();
@@ -1486,3 +1696,4 @@
   </script>
 </body>
 </html>
+
