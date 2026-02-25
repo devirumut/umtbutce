@@ -42,7 +42,7 @@
     }
     *{ box-sizing:border-box; }
     body{
-      font-family:'Poppins', system-ui, -apple-system, "Segoe UI", Roboto, Arial, "Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji", sans-serif;
+      font-family:'Poppins', system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
       background:var(--primary); color:var(--text-main);
       margin:0; padding:10px; transition:.2s;
       display:flex; flex-direction:column; align-items:center; min-height:100vh;
@@ -75,6 +75,9 @@
       background:var(--accent); color:#fff; border:none; padding:8px 12px; border-radius:10px;
       font-weight:700; cursor:pointer; font-size:11px; transition:.15s; white-space:nowrap;
       display:inline-flex; align-items:center; gap:6px;
+      /* FIX: emoji/icon font fallback to prevent "tofu"/broken icons after login */
+      font-family:'Poppins', system-ui, -apple-system, "Segoe UI", Roboto, Arial, "Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji", sans-serif;
+      line-height:1;
     }
     .btn:active{ transform:translateY(1px); }
     .btn-tool{ background:var(--header-bg); color:var(--text-main); border:1px solid var(--border); }
@@ -82,10 +85,24 @@
     .btn-green{ background:#22c55e !important; }
     .btn-gray{ background:#64748b !important; }
 
+    /* FIX: make the icon span stable */
+    .ico{
+      display:inline-flex;
+      width:1.15em;
+      justify-content:center;
+      align-items:center;
+      font-size:1.05em;
+      line-height:1;
+      transform:translateY(-0.02em);
+      flex:0 0 auto;
+    }
+
     .chip{
       background:var(--header-bg); border:1px solid var(--border); color:var(--text-main);
       border-radius:999px; padding:6px 10px; font-size:11px; font-weight:700;
       display:inline-flex; align-items:center; gap:8px;
+      font-family:'Poppins', system-ui, -apple-system, "Segoe UI", Roboto, Arial, "Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji", sans-serif;
+      line-height:1;
     }
     .chip-state{ opacity:.7; }
 
@@ -137,6 +154,7 @@
     input, select{
       background:var(--primary); border:1.5px solid var(--border); padding:8px 10px; border-radius:10px;
       font-size:12px; color:var(--text-main); outline:none;
+      font-family:'Poppins', system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
     }
     input::placeholder{ color:var(--text-dim); }
 
@@ -165,12 +183,14 @@
       width:34px; height:32px; display:flex; align-items:center; justify-content:center;
       border:1px solid var(--border); border-radius:10px; background:var(--primary);
       font-size:16px; user-select:none; line-height:1;
+      font-family: system-ui, -apple-system, "Segoe UI", Roboto, Arial, "Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji", sans-serif;
     }
 
     .badge{
       display:flex; align-items:center; justify-content:center; height:32px; border-radius:10px;
       cursor:pointer; font-size:9px; font-weight:900; border:1px solid var(--border); user-select:none;
       background:var(--primary);
+      font-family:'Poppins', system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
     }
     .b-paid{ background:#dcfce7 !important; color:#166534 !important; border-color:#bbf7d0 !important; }
     .b-pending{ background:#fef3c7 !important; color:#92400e !important; border-color:#fde68a !important; }
@@ -193,10 +213,10 @@
     .stat .val{ font-weight:900; margin-top:4px; }
     .stat.net{ background:var(--accent); color:#fff; border-color:transparent; }
     .stat.net small{ color:rgba(255,255,255,.8); }
-    .val-inc{ color:var(--income); }
+    .val-inc{ color:#22c55e; }
     .val-incp{ color:#38bdf8; }
-    .val-exp{ color:var(--expense); }
-    .val-pend{ color:var(--pending); }
+    .val-exp{ color:#f43f5e; }
+    .val-pend{ color:#f59e0b; }
 
     .calendar-section{
       width:100%; max-width:1750px; background:var(--card-bg); padding:15px 25px; border-radius:20px;
@@ -231,6 +251,7 @@
       padding:12px 18px; border-radius:14px; color:#fff; font-weight:700; font-size:13px;
       z-index:9999; transition:.35s; display:flex; gap:10px; align-items:center;
       box-shadow:0 12px 30px rgba(0,0,0,0.25);
+      font-family:'Poppins', system-ui, -apple-system, "Segoe UI", Roboto, Arial, "Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji", sans-serif;
     }
     .toast.show{ transform:translateX(-50%) translateY(0); }
     .t-info{ background:#4f46e5; } .t-ok{ background:#10b981; } .t-err{ background:#ef4444; }
@@ -240,6 +261,8 @@
       padding:8px 10px; border-radius:999px; border:1px solid var(--border); background:var(--header-bg);
       font-size:11px; font-weight:900; cursor:pointer; user-select:none;
       display:inline-flex; align-items:center; gap:6px;
+      font-family:'Poppins', system-ui, -apple-system, "Segoe UI", Roboto, Arial, "Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji", sans-serif;
+      line-height:1;
     }
     .tab.active{ background:var(--accent); color:#fff; border-color:transparent; }
     .tabpane{ display:none; margin-top:10px; }
@@ -286,11 +309,12 @@
           <span id="session_countdown">15:00</span>
           <span id="session_state" class="chip-state">ACTIVE</span>
         </span>
-        <button id="btn_backup" class="btn btn-green" type="button">🟢 Yedekle</button>
-        <button id="btn_logout" class="btn btn-gray" type="button">⏻ Çıkış</button>
+        <!-- FIX: icons moved into <span class="ico"> to render consistently -->
+        <button id="btn_backup" class="btn btn-green" type="button"><span class="ico">🟢</span>Yedekle</button>
+        <button id="btn_logout" class="btn btn-gray" type="button"><span class="ico">⏻</span>Çıkış</button>
       </div>
 
-      <button id="btn_theme" type="button" class="btn btn-tool">🌗 Tema</button>
+      <button id="btn_theme" type="button" class="btn btn-tool"><span class="ico">🌗</span>Tema</button>
     </div>
   </div>
 
@@ -334,17 +358,17 @@
       <div class="sticky-controls">
         <div class="top-row">
           <div class="month-nav">
-            <button id="btn_prev" type="button" class="btn">← Geri</button>
+            <button id="btn_prev" type="button" class="btn"><span class="ico">←</span>Geri</button>
             <span id="display-month" class="display-month"></span>
-            <button id="btn_next" type="button" class="btn">İleri →</button>
+            <button id="btn_next" type="button" class="btn">İleri<span class="ico">→</span></button>
           </div>
 
           <div class="toolbar">
-            <button id="btn_search" type="button" class="btn btn-tool" title="Ara / Filtre">🔎 Ara</button>
-            <button id="btn_yearly" type="button" class="btn btn-tool">📅 Yıllık</button>
-            <button id="btn_chart" type="button" class="btn btn-tool">📊 Analiz</button>
-            <button id="btn_pdf" type="button" class="btn btn-tool">🧾 PDF</button>
-            <button id="btn_settings" type="button" class="btn btn-tool">⚙️ Ayarlar</button>
+            <button id="btn_search" type="button" class="btn btn-tool" title="Ara / Filtre"><span class="ico">🔎</span>Ara</button>
+            <button id="btn_yearly" type="button" class="btn btn-tool"><span class="ico">📅</span>Yıllık</button>
+            <button id="btn_chart" type="button" class="btn btn-tool"><span class="ico">📊</span>Analiz</button>
+            <button id="btn_pdf" type="button" class="btn btn-tool"><span class="ico">🧾</span>PDF</button>
+            <button id="btn_settings" type="button" class="btn btn-tool"><span class="ico">⚙️</span>Ayarlar</button>
           </div>
         </div>
 
@@ -353,7 +377,7 @@
 
         <div class="quick-add">
           <input id="quick_input" placeholder="Hızlı ekle: örn 'kira 8500 5 gider' / 'maaş 45000 1 gelir'">
-          <button id="btn_quick_add" class="btn" type="button">➕ Hızlı Ekle</button>
+          <button id="btn_quick_add" class="btn" type="button"><span class="ico">➕</span>Hızlı Ekle</button>
         </div>
 
         <div id="search_panel" class="control-bar hidden">
@@ -387,7 +411,7 @@
       </div>
       <div id="entries-container"></div>
 
-      <button id="btn_add" type="button" class="btn btn-add-row">➕ Yeni İşlem</button>
+      <button id="btn_add" type="button" class="btn btn-add-row"><span class="ico">➕</span>Yeni İşlem</button>
 
       <div class="summary-grid">
         <div class="stat"><small>GELİR (ALINAN)</small><div class="val val-inc" id="t-inc">0 TL</div></div>
@@ -400,22 +424,21 @@
   </div>
 
   <div class="calendar-section">
-    <div class="calendar-title">📆 Ödeme Takvimi</div>
+    <div class="calendar-title"><span class="ico">📆</span>Ödeme Takvimi</div>
     <div class="calendar-grid" id="calendar-body"></div>
   </div>
 
   <div class="footer">umtdvr</div>
 
-  <!-- ANALIZ MODAL -->
   <div id="chartModal" class="modal-overlay hidden">
     <div class="modal">
       <button class="closex" type="button" data-close="chartModal">×</button>
-      <h3 style="margin:0 0 6px 0;">📊 Analiz</h3>
+      <h3 style="margin:0 0 6px 0;"><span class="ico">📊</span>Analiz</h3>
 
       <div class="tabs">
-        <div class="tab active" data-tab="tab-month">🧮 Aylık Dağılım</div>
-        <div class="tab" data-tab="tab-trend">📈 Trend (12 Ay)</div>
-        <div class="tab" data-tab="tab-cats">🧾 Kategori</div>
+        <div class="tab active" data-tab="tab-month"><span class="ico">🧮</span>Aylık Dağılım</div>
+        <div class="tab" data-tab="tab-trend"><span class="ico">📈</span>Trend (12 Ay)</div>
+        <div class="tab" data-tab="tab-cats"><span class="ico">🧾</span>Kategori</div>
       </div>
 
       <div class="tabpane active" id="tab-month">
@@ -435,16 +458,15 @@
     </div>
   </div>
 
-  <!-- SETTINGS MODAL -->
   <div id="settingsModal" class="modal-overlay hidden">
     <div class="modal">
       <button class="closex" type="button" data-close="settingsModal">×</button>
-      <h3 style="margin:0 0 10px 0;">⚙️ Ayarlar</h3>
+      <h3 style="margin:0 0 10px 0;"><span class="ico">⚙️</span>Ayarlar</h3>
 
       <div class="settings-top">
-        <button id="btn_undo" class="btn btn-tool" type="button">↩️ Geri Al</button>
-        <button id="btn_notify" class="btn btn-tool" type="button">🔔 Bildirim İzni</button>
-        <button id="btn_sync" class="btn btn-tool" type="button">☁️ Buluttan Çek</button>
+        <button id="btn_undo" class="btn btn-tool" type="button"><span class="ico">↩️</span>Geri Al</button>
+        <button id="btn_notify" class="btn btn-tool" type="button"><span class="ico">🔔</span>Bildirim İzni</button>
+        <button id="btn_sync" class="btn btn-tool" type="button"><span class="ico">☁️</span>Buluttan Çek</button>
       </div>
 
       <hr class="hr">
@@ -452,7 +474,7 @@
       <div class="section-label">KATEGORİLER</div>
       <div class="cat-add">
         <input id="cat_input" placeholder="Yeni kategori adı">
-        <button id="btn_add_cat" class="btn" type="button">➕ Ekle</button>
+        <button id="btn_add_cat" class="btn" type="button"><span class="ico">➕</span>Ekle</button>
       </div>
       <div id="cat_list" class="cat-list"></div>
 
@@ -461,16 +483,15 @@
       <div class="critical">
         <div class="critical-title">KRİTİK</div>
         <div class="critical-desc">Yerel verileri sıfırlar. Bulut yedeği varsa geri alınabilir.</div>
-        <button id="btn_reset" class="btn btn-danger critical-btn" type="button">🗑️ Yerel Verileri Sıfırla</button>
+        <button id="btn_reset" class="btn btn-danger critical-btn" type="button"><span class="ico">🗑️</span>Yerel Verileri Sıfırla</button>
       </div>
     </div>
   </div>
 
-  <!-- YEARLY MODAL -->
   <div id="yearlyModal" class="modal-overlay hidden">
     <div class="modal">
       <button class="closex" type="button" data-close="yearlyModal">×</button>
-      <h3 id="yearly-title" style="margin:0 0 10px 0;">📅 Yıllık Özet</h3>
+      <h3 id="yearly-title" style="margin:0 0 10px 0;"><span class="ico">📅</span>Yıllık Özet</h3>
       <div id="yearly-content"></div>
     </div>
   </div>
@@ -515,7 +536,6 @@
       let autoBackupTimer = null;
       const AUTO_BACKUP_DEBOUNCE_MS = 30000;
 
-      // ANALIZ CHART INSTANCES
       let chartMonth = null;
       let chartTrend = null;
       let chartCat = null;
@@ -568,7 +588,6 @@
         const next = cur === 'dark' ? 'light' : 'dark';
         applyTheme(next);
         safeSetItem(THEME_KEY, next);
-        // chart colors default; no need to touch
       }
 
       function daysInMonth(year, monthIndex0){ return new Date(year, monthIndex0 + 1, 0).getDate(); }
@@ -586,6 +605,16 @@
         const max = daysInMonth(year, monthIndex0);
         if (!Number.isFinite(d)) return 1;
         return Math.min(Math.max(d, 1), max);
+      }
+
+      function cryptoRandomId() {
+        try {
+          const a = new Uint8Array(8);
+          crypto.getRandomValues(a);
+          return Array.from(a).map(x=>x.toString(16).padStart(2,'0')).join('');
+        } catch {
+          return Math.random().toString(16).slice(2) + Date.now().toString(16);
+        }
       }
 
       function normalizeEntry(e0, year, monthIndex0) {
@@ -606,16 +635,6 @@
           status,
           tags: String(e.tags ?? '').slice(0, 60)
         };
-      }
-
-      function cryptoRandomId() {
-        try {
-          const a = new Uint8Array(8);
-          crypto.getRandomValues(a);
-          return Array.from(a).map(x=>x.toString(16).padStart(2,'0')).join('');
-        } catch {
-          return Math.random().toString(16).slice(2) + Date.now().toString(16);
-        }
       }
 
       function loadCategories() {
@@ -829,15 +848,14 @@
         const m = viewDate.getMonth();
         const s = calculateMonth(entries, y, m);
 
-        $('t-inc').textContent = `${s.incPaid.toLocaleString()} TL`;
-        $('t-incp').textContent = `${s.incPending.toLocaleString()} TL`;
-        $('t-exp').textContent = `${s.expPaid.toLocaleString()} TL`;
-        $('t-pend').textContent = `${(s.expPending + s.expOver).toLocaleString()} TL`;
-        $('t-net').textContent = `${s.netForecast.toLocaleString()} TL`;
+        document.getElementById('t-inc').textContent = `${s.incPaid.toLocaleString()} TL`;
+        document.getElementById('t-incp').textContent = `${s.incPending.toLocaleString()} TL`;
+        document.getElementById('t-exp').textContent = `${s.expPaid.toLocaleString()} TL`;
+        document.getElementById('t-pend').textContent = `${(s.expPending + s.expOver).toLocaleString()} TL`;
+        document.getElementById('t-net').textContent = `${s.netForecast.toLocaleString()} TL`;
 
-        $('progress-fill').style.width = `${s.ratio}%`;
-        $('progress-text').textContent = `HARCAMA ORANI: %${s.ratio.toFixed(1)}  •  GECİKEN: ${s.expOver.toLocaleString()} TL`;
-
+        document.getElementById('progress-fill').style.width = `${s.ratio}%`;
+        document.getElementById('progress-text').textContent = `HARCAMA ORANI: %${s.ratio.toFixed(1)}  •  GECİKEN: ${s.expOver.toLocaleString()} TL`;
         return s;
       }
 
@@ -855,7 +873,7 @@
       }
 
       function renderRows() {
-        const host = $('entries-container');
+        const host = document.getElementById('entries-container');
         host.textContent = '';
 
         const y = viewDate.getFullYear();
@@ -884,7 +902,6 @@
             icon.textContent = getIcon(entries[idx].name);
             saveData();
             renderCalendar();
-            refreshChartsIfOpen();
           });
 
           const inAmount = document.createElement('input');
@@ -896,7 +913,6 @@
             entries[idx].amount = amt.value;
             saveData();
             renderSummary();
-            refreshChartsIfOpen();
           });
 
           const selType = document.createElement('select');
@@ -910,10 +926,9 @@
             const before = { ...entries[idx] };
             entries[idx].type = ev.target.value === 'gelir' ? 'gelir' : 'gider';
             if (!categories.includes(entries[idx].category)) entries[idx].category = entries[idx].type === 'gelir' ? 'Gelir' : 'Genel';
-            undoPush({ type:'update', payload:{ id:e.id, before, after:{...entries[idx]} }});
+            undoStack.push({ type:'update', payload:{ id:e.id, before }});
             saveData();
             renderAll();
-            refreshChartsIfOpen();
           });
 
           const selCat = document.createElement('select');
@@ -927,10 +942,9 @@
           selCat.addEventListener('change', (ev) => {
             const before = { ...entries[idx] };
             entries[idx].category = ev.target.value;
-            undoPush({ type:'update', payload:{ id:e.id, before, after:{...entries[idx]} }});
+            undoStack.push({ type:'update', payload:{ id:e.id, before }});
             saveData();
             renderAll();
-            refreshChartsIfOpen();
           });
 
           const inDay = document.createElement('input');
@@ -941,12 +955,11 @@
           inDay.addEventListener('input', (ev) => {
             const before = { ...entries[idx] };
             entries[idx].billDay = normalizeBillDay(ev.target.value, y, m);
-            undoPush({ type:'update', payload:{ id:e.id, before, after:{...entries[idx]} }});
+            undoStack.push({ type:'update', payload:{ id:e.id, before }});
             saveData();
             renderCalendar();
             markOverdueForViewedMonth();
             renderRows();
-            refreshChartsIfOpen();
           });
 
           const selRepeat = document.createElement('select');
@@ -959,9 +972,8 @@
           selRepeat.addEventListener('change', (ev) => {
             const before = { ...entries[idx] };
             entries[idx].repeat = ev.target.value === 'monthly' ? 'monthly' : 'none';
-            undoPush({ type:'update', payload:{ id:e.id, before, after:{...entries[idx]} }});
+            undoStack.push({ type:'update', payload:{ id:e.id, before }});
             saveData();
-            refreshChartsIfOpen();
           });
 
           const badge = document.createElement('div');
@@ -970,11 +982,10 @@
           badge.addEventListener('click', () => {
             const before = { ...entries[idx] };
             entries[idx].status = entries[idx].status === 'paid' ? 'pending' : 'paid';
-            undoPush({ type:'update', payload:{ id:e.id, before, after:{...entries[idx]} }});
+            undoStack.push({ type:'update', payload:{ id:e.id, before }});
             saveData();
             markOverdueForViewedMonth();
             renderAll();
-            refreshChartsIfOpen();
           });
 
           const del = document.createElement('button');
@@ -983,12 +994,11 @@
           del.textContent = '×';
           del.addEventListener('click', () => {
             const removed = entries[idx];
-            undoPush({ type:'delete', payload:{ index: idx, entry: removed }});
+            undoStack.push({ type:'delete', payload:{ index: idx, entry: removed }});
             entries.splice(idx, 1);
-            if (entries.length === 0) entries = [normalizeEntry({ name:'', amount:0, type:'gider', status:'pending', billDay:1, category:'Genel' }, y, m)];
+            if (entries.length === 0) entries = [normalizeEntry({ name:'', amount:0, type:'gider', status:'pending', billDay:1, category:'Genel', repeat:'none' }, y, m)];
             saveData();
             renderAll();
-            refreshChartsIfOpen();
             toast('İşlem silindi', 'info');
           });
 
@@ -1007,7 +1017,7 @@
       }
 
       function renderCalendar() {
-        const body = $('calendar-body');
+        const body = document.getElementById('calendar-body');
         body.textContent = '';
         const year = viewDate.getFullYear();
         const month = viewDate.getMonth();
@@ -1045,110 +1055,6 @@
         renderCalendar();
       }
 
-      function undoPush(item) {
-        undoStack.push(item);
-        if (undoStack.length > 60) undoStack.shift();
-      }
-
-      function undo() {
-        const it = undoStack.pop();
-        if (!it) { toast('Geri alınacak işlem yok', 'info'); return; }
-        const y = viewDate.getFullYear();
-        const m = viewDate.getMonth();
-
-        if (it.type === 'delete') {
-          const { index, entry } = it.payload;
-          entries.splice(Math.min(Math.max(index,0), entries.length), 0, normalizeEntry(entry, y, m));
-          saveData();
-          renderAll();
-          refreshChartsIfOpen();
-          toast('Geri alındı', 'ok');
-          return;
-        }
-
-        if (it.type === 'update') {
-          const { id, before } = it.payload;
-          const idx = entries.findIndex(e => e.id === id);
-          if (idx >= 0) {
-            entries[idx] = normalizeEntry(before, y, m);
-            saveData();
-            renderAll();
-            refreshChartsIfOpen();
-            toast('Geri alındı', 'ok');
-          }
-        }
-      }
-
-      function quickAddParse(text) {
-        const t = (text || '').trim();
-        if (!t) return null;
-        const parts = t.split(/\s+/);
-        if (parts.length < 3) return null;
-
-        let type = parts.some(p => p.toLowerCase() === 'gelir') ? 'gelir' : 'gider';
-        if (parts.some(p => p.toLowerCase() === 'gider')) type = 'gider';
-
-        const repeat = parts.some(p => p.toLowerCase() === 'aylık' || p.toLowerCase() === 'monthly') ? 'monthly' : 'none';
-
-        let amount = null;
-        let day = null;
-
-        for (const p of parts) {
-          const n = parseMoney(p);
-          if (n.ok && amount === null) { amount = n.value; continue; }
-          const di = Number.parseInt(p, 10);
-          if (Number.isFinite(di) && di >= 1 && di <= 31 && day === null) day = di;
-        }
-        if (amount === null) return null;
-        if (day === null) day = 1;
-
-        const idxAmount = parts.findIndex(p => parseMoney(p).ok);
-        const name = parts.slice(0, idxAmount).join(' ').trim() || 'İşlem';
-        return { name, amount, day, type, repeat };
-      }
-
-      function inferCategory(name) {
-        const n = (name || '').toLowerCase();
-        const rules = [
-          { k:['kira'], c:'Kira' },
-          { k:['elektrik','su','doğalgaz','internet','telefon','fatura'], c:'Fatura' },
-          { k:['market','migros','carrefour'], c:'Market' },
-          { k:['yakıt','akaryakıt','benzin','dizel'], c:'Ulaşım' },
-          { k:['yemek','restoran'], c:'Yemek' },
-          { k:['kredi','taksit'], c:'Kredi' },
-          { k:['altın','gram','çeyrek'], c:'Altın' },
-          { k:['maaş','prim'], c:'Gelir' }
-        ];
-        for (const r of rules) if (r.k.some(x=>n.includes(x)) && categories.includes(r.c)) return r.c;
-        return categories.includes('Genel') ? 'Genel' : (categories[0] || 'Genel');
-      }
-
-      function addEntry(e) {
-        const y = viewDate.getFullYear();
-        const m = viewDate.getMonth();
-        const ne = normalizeEntry({
-          name: e.name,
-          amount: e.amount,
-          billDay: e.day,
-          type: e.type,
-          repeat: e.repeat,
-          status: 'pending',
-          category: e.type === 'gelir' ? 'Gelir' : inferCategory(e.name)
-        }, y, m);
-        entries.push(ne);
-        saveData();
-        renderAll();
-        refreshChartsIfOpen();
-        toast('Eklendi', 'ok');
-      }
-
-      function toggleSearchPanel() {
-        const p = $('search_panel');
-        const willShow = p.classList.contains('hidden');
-        p.classList.toggle('hidden', !willShow);
-        if (willShow) { const s = $('f_search'); if (s) s.focus(); }
-      }
-
       async function driveRequest(url, options = {}) {
         if (!accessToken) throw new Error('NO_TOKEN');
         const res = await fetch(url, { ...options, headers: { ...(options.headers||{}), Authorization: `Bearer ${accessToken}` } });
@@ -1166,8 +1072,8 @@
           const res = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', { headers:{ Authorization:`Bearer ${accessToken}` }});
           if (!res.ok) return;
           const user = await res.json();
-          if (user?.email) { $('user-email').textContent = user.email; $('user-info').classList.remove('hidden'); }
-          if (user?.picture) $('user-img').src = user.picture;
+          if (user?.email) { document.getElementById('user-email').textContent = user.email; document.getElementById('user-info').classList.remove('hidden'); }
+          if (user?.picture) document.getElementById('user-img').src = user.picture;
         } catch {}
       }
 
@@ -1219,17 +1125,16 @@
       }
 
       async function initDriveFile() {
-        driveFileId = await findAppDataFileIdByName(DRIVE_BACKUP_NAME);
-        if (driveFileId) return;
-
-        const created = await driveRequest('https://www.googleapis.com/drive/v3/files?fields=id', {
-          method:'POST',
-          headers:{ 'Content-Type':'application/json' },
-          body: JSON.stringify({ name: DRIVE_BACKUP_NAME, parents:['appDataFolder'], mimeType:'application/json' })
-        });
-
-        driveFileId = created?.id || null;
-        if (driveFileId) await syncToDrive(false);
+        let id = await findAppDataFileIdByName(DRIVE_BACKUP_NAME);
+        if (!id) {
+          const created = await driveRequest('https://www.googleapis.com/drive/v3/files?fields=id', {
+            method:'POST',
+            headers:{ 'Content-Type':'application/json' },
+            body: JSON.stringify({ name: DRIVE_BACKUP_NAME, parents:['appDataFolder'], mimeType:'application/json' })
+          });
+          id = created?.id || null;
+        }
+        driveFileId = id;
       }
 
       async function syncToDrive(isAuto=false) {
@@ -1260,16 +1165,16 @@
       }
 
       function setCountdownVisible(v) {
-        $('session_badge').classList.toggle('hidden', !v);
+        document.getElementById('session_badge').classList.toggle('hidden', !v);
       }
 
       function renderCountdown() {
         const left = sessionExpireAt - Date.now();
-        $('session_countdown').textContent = formatMMSS(left);
+        document.getElementById('session_countdown').textContent = formatMMSS(left);
       }
 
       function setSessionState(label) {
-        $('session_state').textContent = label;
+        document.getElementById('session_state').textContent = label;
       }
 
       function stopCountdown() {
@@ -1287,6 +1192,32 @@
       function clearSessionTimer() {
         if (sessionTimer) { clearTimeout(sessionTimer); sessionTimer = null; }
       }
+
+      async function handleLogoutWithPrompt(isAuto=false) {
+        const ask = isAuto
+          ? 'Oturum süresi doldu. Çıkmadan önce buluta kaydedilsin mi?'
+          : 'Güvenli çıkış. Çıkmadan önce buluta kaydedilsin mi?';
+
+        let doSave = false;
+        try { doSave = confirm(ask); } catch { doSave = false; }
+
+        if (doSave) {
+          try { await syncToDrive(false); } catch (e) { toast(String(e?.message || e), 'err'); }
+        }
+
+        const token = accessToken;
+        accessToken = null; driveFileId = null;
+
+        sessionActive = false;
+        clearSessionTimer();
+        stopCountdown();
+
+        if (!token) { location.reload(); return; }
+        try { google.accounts.oauth2.revoke(token, () => location.reload()); }
+        catch { location.reload(); }
+      }
+
+      async function handleLogout() { await handleLogoutWithPrompt(false); }
 
       async function expireSession() {
         if (!sessionActive) return;
@@ -1352,117 +1283,6 @@
         tokenClient.requestAccessToken();
       }
 
-      async function handleLogoutWithPrompt(isAuto=false) {
-        const ask = isAuto
-          ? 'Oturum süresi doldu. Çıkmadan önce buluta kaydedilsin mi?'
-          : 'Güvenli çıkış. Çıkmadan önce buluta kaydedilsin mi?';
-
-        let doSave = false;
-        try { doSave = confirm(ask); } catch { doSave = false; }
-
-        if (doSave) {
-          try { await syncToDrive(false); } catch (e) { toast(String(e?.message || e), 'err'); }
-        }
-
-        const token = accessToken;
-        accessToken = null; driveFileId = null;
-
-        sessionActive = false;
-        clearSessionTimer();
-        stopCountdown();
-
-        if (!token) { location.reload(); return; }
-        try { google.accounts.oauth2.revoke(token, () => location.reload()); }
-        catch { location.reload(); }
-      }
-
-      async function handleLogout() { await handleLogoutWithPrompt(false); }
-
-      function changeMonth(delta) {
-        viewDate.setMonth(viewDate.getMonth() + delta);
-        loadData();
-        refreshChartsIfOpen();
-      }
-
-      function addBlankRow() {
-        const y = viewDate.getFullYear();
-        const m = viewDate.getMonth();
-        entries.push(normalizeEntry({ name:'', amount:0, type:'gider', status:'pending', billDay:1, category:'Genel', repeat:'none' }, y, m));
-        saveData();
-        renderAll();
-        refreshChartsIfOpen();
-      }
-
-      function buildYearlyTable(year) {
-        const table = document.createElement('table');
-        table.style.width='100%';
-        table.style.borderCollapse='collapse';
-
-        const thead = document.createElement('thead');
-        const trh = document.createElement('tr');
-        const heads = ['AY','GELİR','GİDER','GECİKEN','NET'];
-        for (const h of heads) {
-          const th = document.createElement('th');
-          th.textContent = h;
-          trh.appendChild(th);
-        }
-        thead.appendChild(trh);
-        table.appendChild(thead);
-
-        const tbody = document.createElement('tbody');
-        let Tinc=0, Tout=0, Tover=0, Tnet=0;
-
-        for (let mi=0; mi<12; mi++) {
-          const data = safeLoadMonth(year, mi);
-          const st = calculateMonth(data, year, mi);
-          const inc = st.incPaid + st.incPending;
-          const out = st.expPaid + st.expPending + st.expOver;
-
-          Tinc += inc; Tout += out; Tover += st.expOver; Tnet += st.netForecast;
-
-          const tr = document.createElement('tr');
-
-          const tdAy = document.createElement('td'); tdAy.textContent = aylar[mi];
-          const tdInc = document.createElement('td'); tdInc.textContent = `${inc.toLocaleString()} TL`;
-          const tdOut = document.createElement('td'); tdOut.textContent = `${out.toLocaleString()} TL`;
-          const tdOver = document.createElement('td'); tdOver.textContent = `${st.expOver.toLocaleString()} TL`;
-          const tdNet = document.createElement('td');
-          const b = document.createElement('b'); b.textContent = `${st.netForecast.toLocaleString()} TL`;
-          tdNet.appendChild(b);
-
-          tr.appendChild(tdAy);
-          tr.appendChild(tdInc);
-          tr.appendChild(tdOut);
-          tr.appendChild(tdOver);
-          tr.appendChild(tdNet);
-
-          tbody.appendChild(tr);
-        }
-
-        const trT = document.createElement('tr');
-        trT.style.background='var(--accent)';
-        trT.style.color='white';
-
-        const tdT = (txt) => {
-          const td = document.createElement('td');
-          const b = document.createElement('b'); b.textContent = txt;
-          td.appendChild(b);
-          return td;
-        };
-
-        trT.appendChild(tdT('TOPLAM'));
-        trT.appendChild(tdT(`${Tinc.toLocaleString()} TL`));
-        trT.appendChild(tdT(`${Tout.toLocaleString()} TL`));
-        trT.appendChild(tdT(`${Tover.toLocaleString()} TL`));
-        trT.appendChild(tdT(`${Tnet.toLocaleString()} TL`));
-
-        tbody.appendChild(trT);
-        table.appendChild(tbody);
-
-        return table;
-      }
-
-      // FIX: TAB SWITCHING (Analiz isimleri/tabs çalışmıyordu)
       function bindChartTabs() {
         document.querySelectorAll('#chartModal .tab').forEach(tab => {
           tab.addEventListener('click', () => {
@@ -1472,258 +1292,176 @@
             tab.classList.add('active');
             const pane = document.getElementById(target);
             if (pane) pane.classList.add('active');
-            setTimeout(() => { renderCharts(); }, 0);
           });
         });
       }
 
-      function destroyCharts() {
-        try { if (chartMonth) chartMonth.destroy(); } catch {}
-        try { if (chartTrend) chartTrend.destroy(); } catch {}
-        try { if (chartCat) chartCat.destroy(); } catch {}
-        chartMonth = chartTrend = chartCat = null;
-      }
-
-      function isChartModalOpen() {
-        const el = $('chartModal');
-        return el && !el.classList.contains('hidden');
-      }
-
-      function refreshChartsIfOpen() {
-        if (isChartModalOpen()) renderCharts();
-      }
-
-      function monthLabel(year, mi){ return `${aylar[mi]} ${year}`; }
-
-      function buildCategoryTotalsForMonth(list, year, monthIndex0) {
-        const map = new Map();
-        for (const e0 of list) {
-          const e = normalizeEntry(e0, year, monthIndex0);
-          if (e.type !== 'gider') continue;
-          const amt = e.amount || 0;
-          if (amt <= 0) continue;
-          const key = e.category || 'Genel';
-          map.set(key, (map.get(key) || 0) + amt);
-        }
-        const arr = Array.from(map.entries()).sort((a,b)=>b[1]-a[1]);
-        return {
-          labels: arr.map(x=>x[0]),
-          values: arr.map(x=>Math.round(x[1]*100)/100)
-        };
-      }
-
-      // FIX: ANALIZ GRAFIKLERI (boş kalıyordu)
-      function renderCharts() {
-        if (typeof Chart === 'undefined') return;
-
-        const y = viewDate.getFullYear();
-        const m = viewDate.getMonth();
-        const st = calculateMonth(entries, y, m);
-
-        const incForecast = st.incPaid + st.incPending;
-        const outForecast = st.expPaid + st.expPending + st.expOver;
-        const net = st.netForecast;
-
-        // Month (bar): gelir, gider, net(negatifse 0)
-        const ctxM = $('chart_month')?.getContext?.('2d');
-        if (ctxM) {
-          try { if (chartMonth) chartMonth.destroy(); } catch {}
-          chartMonth = new Chart(ctxM, {
-            type: 'bar',
-            data: {
-              labels: ['Gelir (tahmini)', 'Gider (tahmini)', 'Net (min 0)'],
-              datasets: [{
-                label: `${aylar[m]} ${y}`,
-                data: [incForecast, outForecast, Math.max(0, net)]
-              }]
-            },
-            options: {
-              responsive: true,
-              maintainAspectRatio: false,
-              plugins: { legend: { display: false } },
-              scales: {
-                y: { beginAtZero: true, ticks: { callback: (v)=> `${Number(v).toLocaleString()} TL` } }
-              }
-            }
-          });
-        }
-
-        // Trend (line): last 12 months including current
-        const ctxT = $('chart_trend')?.getContext?.('2d');
-        if (ctxT) {
-          try { if (chartTrend) chartTrend.destroy(); } catch {}
-
-          const labels = [];
-          const incomeReal = [];
-          const incomeForecast = [];
-          const expenseReal = [];
-          const expenseForecast = [];
-          const netForecastArr = [];
-
-          const start = new Date(y, m, 1);
-          start.setMonth(start.getMonth() - 11);
-
-          for (let i=0; i<12; i++) {
-            const d = new Date(start.getFullYear(), start.getMonth() + i, 1);
-            const yy = d.getFullYear();
-            const mm = d.getMonth();
-            const data = safeLoadMonth(yy, mm);
-            const s = calculateMonth(data, yy, mm);
-
-            const incF = s.incPaid + s.incPending;
-            const outF = s.expPaid + s.expPending + s.expOver;
-
-            labels.push(monthLabel(yy, mm));
-            incomeReal.push(s.incPaid);
-            incomeForecast.push(incF);
-            expenseReal.push(s.expPaid);
-            expenseForecast.push(outF);
-            netForecastArr.push(incF - outF);
-          }
-
-          chartTrend = new Chart(ctxT, {
-            type: 'line',
-            data: {
-              labels,
-              datasets: [
-                { label: 'Gelir (gerçekleşen)', data: incomeReal, tension: 0.25 },
-                { label: 'Gelir (tahmini)', data: incomeForecast, tension: 0.25 },
-                { label: 'Gider (gerçekleşen)', data: expenseReal, tension: 0.25 },
-                { label: 'Gider (tahmini)', data: expenseForecast, tension: 0.25 },
-                { label: 'Net (tahmini)', data: netForecastArr, tension: 0.25 }
-              ]
-            },
-            options: {
-              responsive: true,
-              maintainAspectRatio: false,
-              plugins: { legend: { position: 'bottom' } },
-              scales: {
-                y: { ticks: { callback: (v)=> `${Number(v).toLocaleString()} TL` } }
-              }
-            }
-          });
-        }
-
-        // Category (pie): giderler (paid+pending+overdue)
-        const ctxC = $('chart_cat')?.getContext?.('2d');
-        if (ctxC) {
-          try { if (chartCat) chartCat.destroy(); } catch {}
-
-          const cat = buildCategoryTotalsForMonth(entries, y, m);
-          chartCat = new Chart(ctxC, {
-            type: 'pie',
-            data: {
-              labels: cat.labels.length ? cat.labels : ['(Veri yok)'],
-              datasets: [{
-                data: cat.labels.length ? cat.values : [1]
-              }]
-            },
-            options: {
-              responsive: true,
-              maintainAspectRatio: false,
-              plugins: { legend: { position: 'bottom' } }
-            }
-          });
-        }
-      }
-
       function bindEvents() {
-        $('auth_btn').addEventListener('click', handleAuthClick);
-        $('btn_backup').addEventListener('click', async () => { try { await syncToDrive(false); } catch (e) { toast(String(e?.message||e), 'err'); }});
-        $('btn_logout').addEventListener('click', handleLogout);
+        document.getElementById('auth_btn').addEventListener('click', handleAuthClick);
+        document.getElementById('btn_backup').addEventListener('click', async () => { try { await syncToDrive(false); } catch (e) { toast(String(e?.message||e), 'err'); }});
+        document.getElementById('btn_logout').addEventListener('click', handleLogout);
 
-        $('btn_theme').addEventListener('click', toggleTheme);
-        $('btn_prev').addEventListener('click', () => changeMonth(-1));
-        $('btn_next').addEventListener('click', () => changeMonth(1));
+        document.getElementById('btn_theme').addEventListener('click', toggleTheme);
+        document.getElementById('btn_prev').addEventListener('click', () => { viewDate.setMonth(viewDate.getMonth() - 1); loadData(); });
+        document.getElementById('btn_next').addEventListener('click', () => { viewDate.setMonth(viewDate.getMonth() + 1); loadData(); });
 
-        $('btn_add').addEventListener('click', addBlankRow);
+        document.getElementById('btn_add').addEventListener('click', () => {
+          const y = viewDate.getFullYear();
+          const m = viewDate.getMonth();
+          entries.push(normalizeEntry({ name:'', amount:0, type:'gider', status:'pending', billDay:1, category:'Genel', repeat:'none' }, y, m));
+          saveData();
+          renderAll();
+        });
 
-        $('btn_yearly').addEventListener('click', () => {
+        document.getElementById('btn_yearly').addEventListener('click', () => {
           const year = viewDate.getFullYear();
-          $('yearly-title').textContent = `📅 ${year} Yıllık Özet`;
-          const host = $('yearly-content');
+          document.getElementById('yearly-title').innerHTML = '<span class="ico">📅</span>' + year + ' Yıllık Özet';
+          const host = document.getElementById('yearly-content');
           host.textContent = '';
           host.appendChild(buildYearlyTable(year));
           showModal('yearlyModal');
         });
 
-        $('btn_chart').addEventListener('click', () => {
-          showModal('chartModal');
-          // chartlar ilk açılışta çizilsin
-          setTimeout(() => { renderCharts(); }, 0);
-        });
+        document.getElementById('btn_chart').addEventListener('click', () => showModal('chartModal'));
 
-        $('btn_pdf').addEventListener('click', () => {
+        document.getElementById('btn_pdf').addEventListener('click', () => {
           const element = document.querySelector('.budget-card');
           const opt = { margin: 10, filename: `Butce_${aylar[viewDate.getMonth()]}_${viewDate.getFullYear()}.pdf`, html2canvas: { scale: 2 }, jsPDF: { unit: 'mm', format: 'a4' } };
           html2pdf().set(opt).from(element).save();
         });
 
-        $('btn_settings').addEventListener('click', () => { renderCategoryChips(); showModal('settingsModal'); });
-        $('btn_search').addEventListener('click', toggleSearchPanel);
-
-        $('btn_quick_add').addEventListener('click', () => {
-          const q = $('quick_input').value;
-          const parsed = quickAddParse(q);
-          if (!parsed) { toast('Hızlı ekleme formatı hatalı', 'err'); return; }
-          $('quick_input').value = '';
-          addEntry(parsed);
+        document.getElementById('btn_settings').addEventListener('click', () => { renderCategoryChips(); showModal('settingsModal'); });
+        document.getElementById('btn_search').addEventListener('click', () => {
+          const p = document.getElementById('search_panel');
+          p.classList.toggle('hidden');
         });
-        $('quick_input').addEventListener('keydown', (e) => { if (e.key === 'Enter') $('btn_quick_add').click(); });
+
+        document.getElementById('btn_quick_add').addEventListener('click', () => {
+          const q = document.getElementById('quick_input').value;
+          const parsed = (() => {
+            const t = (q || '').trim();
+            if (!t) return null;
+            const parts = t.split(/\s+/);
+            if (parts.length < 3) return null;
+
+            let type = parts.some(p => p.toLowerCase() === 'gelir') ? 'gelir' : 'gider';
+            if (parts.some(p => p.toLowerCase() === 'gider')) type = 'gider';
+
+            const repeat = parts.some(p => p.toLowerCase() === 'aylık' || p.toLowerCase() === 'monthly') ? 'monthly' : 'none';
+
+            let amount = null;
+            let day = null;
+
+            for (const p of parts) {
+              const n = parseMoney(p);
+              if (n.ok && amount === null) { amount = n.value; continue; }
+              const di = Number.parseInt(p, 10);
+              if (Number.isFinite(di) && di >= 1 && di <= 31 && day === null) day = di;
+            }
+            if (amount === null) return null;
+            if (day === null) day = 1;
+
+            const idxAmount = parts.findIndex(p => parseMoney(p).ok);
+            const name = parts.slice(0, idxAmount).join(' ').trim() || 'İşlem';
+            return { name, amount, day, type, repeat };
+          })();
+
+          if (!parsed) { toast('Hızlı ekleme formatı hatalı', 'err'); return; }
+          document.getElementById('quick_input').value = '';
+
+          const y = viewDate.getFullYear();
+          const m = viewDate.getMonth();
+          const inferCategory = (name) => {
+            const n = (name || '').toLowerCase();
+            const rules = [
+              { k:['kira'], c:'Kira' },
+              { k:['elektrik','su','doğalgaz','internet','telefon','fatura'], c:'Fatura' },
+              { k:['market','migros','carrefour'], c:'Market' },
+              { k:['yakıt','akaryakıt','benzin','dizel'], c:'Ulaşım' },
+              { k:['yemek','restoran'], c:'Yemek' },
+              { k:['kredi','taksit'], c:'Kredi' },
+              { k:['altın','gram','çeyrek'], c:'Altın' },
+              { k:['maaş','prim'], c:'Gelir' }
+            ];
+            for (const r of rules) if (r.k.some(x=>n.includes(x)) && categories.includes(r.c)) return r.c;
+            return categories.includes('Genel') ? 'Genel' : (categories[0] || 'Genel');
+          };
+
+          const ne = normalizeEntry({
+            name: parsed.name,
+            amount: parsed.amount,
+            billDay: parsed.day,
+            type: parsed.type,
+            repeat: parsed.repeat,
+            status: 'pending',
+            category: parsed.type === 'gelir' ? 'Gelir' : inferCategory(parsed.name)
+          }, y, m);
+
+          entries.push(ne);
+          saveData();
+          renderAll();
+          toast('Eklendi', 'ok');
+        });
+
+        document.getElementById('quick_input').addEventListener('keydown', (e) => { if (e.key === 'Enter') document.getElementById('btn_quick_add').click(); });
 
         ['f_search','f_type','f_status','f_cat','f_sort'].forEach(id => {
-          $(id).addEventListener('input', renderAll);
-          $(id).addEventListener('change', renderAll);
+          document.getElementById(id).addEventListener('input', renderAll);
+          document.getElementById(id).addEventListener('change', renderAll);
         });
 
-        document.querySelectorAll('[data-close]').forEach(btn => btn.addEventListener('click', () => {
-          const id = btn.getAttribute('data-close');
-          closeModal(id);
-          if (id === 'chartModal') destroyCharts();
-        }));
+        document.querySelectorAll('[data-close]').forEach(btn => btn.addEventListener('click', () => closeModal(btn.getAttribute('data-close'))));
+        ['chartModal','settingsModal','yearlyModal'].forEach(id => document.getElementById(id).addEventListener('click', (e) => { if (e.target && e.target.id === id) closeModal(id); }));
 
-        ['chartModal','settingsModal','yearlyModal'].forEach(id => $(id).addEventListener('click', (e) => {
-          if (e.target && e.target.id === id) {
-            closeModal(id);
-            if (id === 'chartModal') destroyCharts();
-          }
-        }));
-
-        $('btn_reset').addEventListener('click', () => {
+        document.getElementById('btn_reset').addEventListener('click', () => {
           const c1 = confirm('Yerel veriler silinecek. Emin misiniz?'); if (!c1) return;
           const c2 = confirm('Son onay. Silinsin mi?'); if (!c2) return;
           for (let i=localStorage.length-1; i>=0; i--) { const k = localStorage.key(i); if (k && k.startsWith(STORAGE_PREFIX)) localStorage.removeItem(k); }
           loadData();
-          refreshChartsIfOpen();
           toast('Yerel veriler sıfırlandı', 'info');
         });
 
-        $('btn_undo').addEventListener('click', undo);
+        document.getElementById('btn_undo').addEventListener('click', () => {
+          const it = undoStack.pop();
+          if (!it) { toast('Geri alınacak işlem yok', 'info'); return; }
+          const y = viewDate.getFullYear();
+          const m = viewDate.getMonth();
 
-        $('btn_add_cat').addEventListener('click', () => {
-          const v = ($('cat_input').value || '').trim();
+          if (it.type === 'delete') {
+            const { index, entry } = it.payload;
+            entries.splice(Math.min(Math.max(index,0), entries.length), 0, normalizeEntry(entry, y, m));
+            saveData(); renderAll(); toast('Geri alındı', 'ok'); return;
+          }
+          if (it.type === 'update') {
+            const { id, before } = it.payload;
+            const idx = entries.findIndex(e => e.id === id);
+            if (idx >= 0) { entries[idx] = normalizeEntry(before, y, m); saveData(); renderAll(); toast('Geri alındı', 'ok'); }
+          }
+        });
+
+        document.getElementById('btn_add_cat').addEventListener('click', () => {
+          const v = (document.getElementById('cat_input').value || '').trim();
           if (!v) return;
           if (!categories.includes(v)) categories.push(v);
-          $('cat_input').value = '';
+          document.getElementById('cat_input').value = '';
           saveCategories();
           renderFilters();
           renderCategoryChips();
           renderAll();
-          refreshChartsIfOpen();
           toast('Kategori eklendi', 'ok');
         });
-        $('cat_input').addEventListener('keydown', (e) => { if (e.key === 'Enter') $('btn_add_cat').click(); });
+        document.getElementById('cat_input').addEventListener('keydown', (e) => { if (e.key === 'Enter') document.getElementById('btn_add_cat').click(); });
 
-        $('btn_notify').addEventListener('click', async () => {
+        document.getElementById('btn_notify').addEventListener('click', async () => {
           if (!('Notification' in window)) { toast('Bildirim desteklenmiyor', 'err'); return; }
           const p = await Notification.requestPermission();
           safeSetItem(NOTIFY_KEY, p === 'granted' ? '1' : '0');
           toast(p === 'granted' ? 'Bildirim açık' : 'Bildirim kapalı', p === 'granted' ? 'ok' : 'info');
         });
 
-        $('btn_sync').addEventListener('click', async () => {
+        document.getElementById('btn_sync').addEventListener('click', async () => {
           if (!accessToken || !driveFileId) { toast('Önce Google ile bağlan', 'err'); return; }
-          try { await syncFromDrive(); refreshChartsIfOpen(); } catch (e) { toast(String(e?.message||e), 'err'); }
+          try { await syncFromDrive(); } catch (e) { toast(String(e?.message||e), 'err'); }
         });
       }
 
