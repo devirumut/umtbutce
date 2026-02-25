@@ -608,7 +608,7 @@
 
   async function findAppDataFileIdByName(name) {
     const q = encodeURIComponent(`name="${name}" and trashed=false`);
-    const url = `https://www.googleapis.com/drive/v3/files?spaces=appDataFolder&q=${q}&fields=files(id,name,modifiedTime,etag)`;
+    const url = `https://www.googleapis.com/drive/v3/files?spaces=appDataFolder&q=${q}&fields=files(id,name,modifiedTime)`;
     const data = await driveRequest(url);
     return (data && data.files && data.files[0]) ? data.files[0].id : null;
   }
@@ -1164,3 +1164,4 @@
 </script>
 </body>
 </html>
+
