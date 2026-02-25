@@ -75,7 +75,6 @@
       background:var(--accent); color:#fff; border:none; padding:8px 12px; border-radius:10px;
       font-weight:700; cursor:pointer; font-size:11px; transition:.15s; white-space:nowrap;
       display:inline-flex; align-items:center; gap:6px;
-      /* FIX: emoji/icon font fallback to prevent "tofu"/broken icons after login */
       font-family:'Poppins', system-ui, -apple-system, "Segoe UI", Roboto, Arial, "Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji", sans-serif;
       line-height:1;
     }
@@ -85,7 +84,6 @@
     .btn-green{ background:#22c55e !important; }
     .btn-gray{ background:#64748b !important; }
 
-    /* FIX: make the icon span stable */
     .ico{
       display:inline-flex;
       width:1.15em;
@@ -286,6 +284,30 @@
     .critical-btn{ width:100%; margin-top:10px; }
 
     .footer{ margin:18px 0 10px; font-size:10px; color:var(--text-dim); opacity:.65; }
+
+    /* yearly table polish */
+    .ytable{
+      width:100%;
+      border-collapse:separate;
+      border-spacing:0 8px;
+      font-size:12px;
+    }
+    .ytable th{
+      text-align:left;
+      padding:10px;
+      background:var(--header-bg);
+      border:1px solid var(--border);
+      border-left:none; border-right:none;
+      font-weight:900;
+    }
+    .ytable td{
+      padding:10px;
+      background:var(--primary);
+      border:1px solid var(--border);
+      border-left:none; border-right:none;
+      font-weight:700;
+    }
+    .ytable td:first-child{ font-weight:900; }
   </style>
 </head>
 
@@ -309,7 +331,6 @@
           <span id="session_countdown">15:00</span>
           <span id="session_state" class="chip-state">ACTIVE</span>
         </span>
-        <!-- FIX: icons moved into <span class="ico"> to render consistently -->
         <button id="btn_backup" class="btn btn-green" type="button"><span class="ico">☁️</span>Yedekle</button>
         <button id="btn_logout" class="btn btn-gray" type="button"><span class="ico">🚪</span>Çıkış</button>
       </div>
@@ -430,6 +451,7 @@
 
   <div class="footer">umtdvr</div>
 
+  <!-- ANALIZ MODAL -->
   <div id="chartModal" class="modal-overlay hidden">
     <div class="modal">
       <button class="closex" type="button" data-close="chartModal">×</button>
@@ -448,16 +470,17 @@
 
       <div class="tabpane" id="tab-trend">
         <div class="chart-wrap chart-tall"><canvas id="chart_trend"></canvas></div>
-        <div class="muted-inline">Gerçekleşen: paid. Tahmin: paid + pending.</div>
+        <div class="muted-inline">Tahmin: paid + pending + overdue.</div>
       </div>
 
       <div class="tabpane" id="tab-cats">
         <div class="chart-wrap"><canvas id="chart_cat"></canvas></div>
-        <div class="muted-inline">Sadece giderler kategori bazlı gösterilir (paid + pending + overdue).</div>
+        <div class="muted-inline">Sadece giderler kategori bazlı (paid + pending + overdue).</div>
       </div>
     </div>
   </div>
 
+  <!-- SETTINGS MODAL -->
   <div id="settingsModal" class="modal-overlay hidden">
     <div class="modal">
       <button class="closex" type="button" data-close="settingsModal">×</button>
@@ -488,6 +511,7 @@
     </div>
   </div>
 
+  <!-- YEARLY MODAL -->
   <div id="yearlyModal" class="modal-overlay hidden">
     <div class="modal">
       <button class="closex" type="button" data-close="yearlyModal">×</button>
@@ -536,6 +560,7 @@
       let autoBackupTimer = null;
       const AUTO_BACKUP_DEBOUNCE_MS = 30000;
 
+      // ANALIZ GRAFIKLERI
       let chartMonth = null;
       let chartTrend = null;
       let chartCat = null;
@@ -592,6 +617,7 @@
 
       function daysInMonth(year, monthIndex0){ return new Date(year, monthIndex0 + 1, 0).getDate(); }
       function storageKeyFor(dateObj){ return `${STORAGE_PREFIX}${aylar[dateObj.getMonth()]}_${dateObj.getFullYear()}`; }
+      function monthKeyBy(year, monthIndex0){ return `${STORAGE_PREFIX}${aylar[monthIndex0]}_${year}`; }
 
       function parseMoney(raw) {
         const s = String(raw ?? '').trim().replace(',', '.');
@@ -646,6 +672,19 @@
       }
       function saveCategories() { safeSetItem(CAT_KEY, JSON.stringify(Array.from(new Set(categories)))); }
 
+      function safeLoadMonth(year, monthIndex0) {
+        const key = `${STORAGE_PREFIX}${aylar[monthIndex0]}_${year}`;
+        const raw = localStorage.getItem(key);
+        const parsed = safeJsonParse(raw, []);
+        return Array.isArray(parsed) ? parsed : [];
+      }
+
+      function getMonthEntries(year, monthIndex0){
+        const raw = localStorage.getItem(monthKeyBy(year, monthIndex0));
+        const parsed = safeJsonParse(raw, []);
+        return Array.isArray(parsed) ? parsed.map(e => normalizeEntry(e, year, monthIndex0)) : [];
+      }
+
       function loadData() {
         const key = storageKeyFor(viewDate);
         const stored = localStorage.getItem(key);
@@ -681,13 +720,6 @@
         if (!accessToken || !driveFileId) return;
         if (autoBackupTimer) clearTimeout(autoBackupTimer);
         autoBackupTimer = setTimeout(async () => { try { await syncToDrive(true); } catch {} }, AUTO_BACKUP_DEBOUNCE_MS);
-      }
-
-      function safeLoadMonth(year, monthIndex0) {
-        const key = `${STORAGE_PREFIX}${aylar[monthIndex0]}_${year}`;
-        const raw = localStorage.getItem(key);
-        const parsed = safeJsonParse(raw, []);
-        return Array.isArray(parsed) ? parsed : [];
       }
 
       function seedRecurringFromPreviousMonth() {
@@ -780,7 +812,7 @@
         const outForecast = expPaid + expPending + expOver;
         const netForecast = incForecast - outForecast;
         const ratio = incForecast > 0 ? Math.min((outForecast / incForecast) * 100, 100) : 0;
-        return { incPaid, incPending, expPaid, expPending, expOver, netForecast, ratio };
+        return { incPaid, incPending, expPaid, expPending, expOver, netForecast, ratio, incForecast, outForecast };
       }
 
       function setAuthUi(isAuthed) {
@@ -848,14 +880,14 @@
         const m = viewDate.getMonth();
         const s = calculateMonth(entries, y, m);
 
-        document.getElementById('t-inc').textContent = `${s.incPaid.toLocaleString()} TL`;
-        document.getElementById('t-incp').textContent = `${s.incPending.toLocaleString()} TL`;
-        document.getElementById('t-exp').textContent = `${s.expPaid.toLocaleString()} TL`;
-        document.getElementById('t-pend').textContent = `${(s.expPending + s.expOver).toLocaleString()} TL`;
-        document.getElementById('t-net').textContent = `${s.netForecast.toLocaleString()} TL`;
+        $('t-inc').textContent = `${s.incPaid.toLocaleString()} TL`;
+        $('t-incp').textContent = `${s.incPending.toLocaleString()} TL`;
+        $('t-exp').textContent = `${s.expPaid.toLocaleString()} TL`;
+        $('t-pend').textContent = `${(s.expPending + s.expOver).toLocaleString()} TL`;
+        $('t-net').textContent = `${s.netForecast.toLocaleString()} TL`;
 
-        document.getElementById('progress-fill').style.width = `${s.ratio}%`;
-        document.getElementById('progress-text').textContent = `HARCAMA ORANI: %${s.ratio.toFixed(1)}  •  GECİKEN: ${s.expOver.toLocaleString()} TL`;
+        $('progress-fill').style.width = `${s.ratio}%`;
+        $('progress-text').textContent = `HARCAMA ORANI: %${s.ratio.toFixed(1)}  •  GECİKEN: ${s.expOver.toLocaleString()} TL`;
         return s;
       }
 
@@ -873,7 +905,7 @@
       }
 
       function renderRows() {
-        const host = document.getElementById('entries-container');
+        const host = $('entries-container');
         host.textContent = '';
 
         const y = viewDate.getFullYear();
@@ -1017,7 +1049,7 @@
       }
 
       function renderCalendar() {
-        const body = document.getElementById('calendar-body');
+        const body = $('calendar-body');
         body.textContent = '';
         const year = viewDate.getFullYear();
         const month = viewDate.getMonth();
@@ -1055,6 +1087,223 @@
         renderCalendar();
       }
 
+      // =========================
+      // YILLIK TABLO (EKSİKTİ)
+      // =========================
+      function buildYearlyTable(year){
+        const wrap = document.createElement('div');
+
+        const table = document.createElement('table');
+        table.className = 'ytable';
+
+        const thead = document.createElement('thead');
+        const trh = document.createElement('tr');
+        const heads = ['AY','GELİR (ALINAN)','GELİR (BEKLEYEN)','GİDER (ÖDENEN)','GİDER (BEKLEYEN+GECİKEN)','NET (TAHMİNİ)'];
+        for (const h of heads) {
+          const th = document.createElement('th');
+          th.textContent = h;
+          trh.appendChild(th);
+        }
+        thead.appendChild(trh);
+        table.appendChild(thead);
+
+        const tbody = document.createElement('tbody');
+
+        let TincPaid=0, TincPend=0, TexpPaid=0, TexpPendOver=0, Tnet=0;
+
+        for (let mi=0; mi<12; mi++) {
+          const data = getMonthEntries(year, mi);
+          const st = calculateMonth(data, year, mi);
+
+          TincPaid += st.incPaid;
+          TincPend += st.incPending;
+          TexpPaid += st.expPaid;
+          TexpPendOver += (st.expPending + st.expOver);
+          Tnet += st.netForecast;
+
+          const tr = document.createElement('tr');
+
+          const cells = [
+            aylar[mi],
+            `${st.incPaid.toLocaleString()} TL`,
+            `${st.incPending.toLocaleString()} TL`,
+            `${st.expPaid.toLocaleString()} TL`,
+            `${(st.expPending + st.expOver).toLocaleString()} TL`,
+            `${st.netForecast.toLocaleString()} TL`
+          ];
+
+          cells.forEach((v) => {
+            const td = document.createElement('td');
+            td.textContent = v;
+            tr.appendChild(td);
+          });
+
+          tbody.appendChild(tr);
+        }
+
+        table.appendChild(tbody);
+
+        const total = document.createElement('div');
+        total.className = 'chip';
+        total.style.marginTop = '10px';
+        total.innerHTML =
+          `<span class="ico">∑</span>
+           <span style="font-weight:900">TOPLAM</span>
+           <span style="opacity:.6">|</span>
+           <span>Gelir</span><b>${TincPaid.toLocaleString()} TL</b>
+           <span style="opacity:.6">+</span>
+           <span>Bekleyen</span><b>${TincPend.toLocaleString()} TL</b>
+           <span style="opacity:.6">|</span>
+           <span>Gider</span><b>${TexpPaid.toLocaleString()} TL</b>
+           <span style="opacity:.6">+</span>
+           <span>Bekleyen</span><b>${TexpPendOver.toLocaleString()} TL</b>
+           <span style="opacity:.6">|</span>
+           <span>Net</span><b>${Tnet.toLocaleString()} TL</b>`;
+
+        wrap.appendChild(table);
+        wrap.appendChild(total);
+        return wrap;
+      }
+
+      // =========================
+      // ANALIZ (EKSİKTİ): TAB + GRAFİK ÜRETİMİ
+      // =========================
+      function ensureCharts(){
+        if (typeof Chart === 'undefined') return false;
+
+        const cM = $('chart_month');
+        const cT = $('chart_trend');
+        const cC = $('chart_cat');
+        if (!cM || !cT || !cC) return false;
+
+        const ctxM = cM.getContext('2d');
+        const ctxT = cT.getContext('2d');
+        const ctxC = cC.getContext('2d');
+
+        if (!chartMonth){
+          chartMonth = new Chart(ctxM, {
+            type: 'doughnut',
+            data: { labels: ['Gelir (Tahmin)','Gider (Tahmin)'], datasets: [{ data: [0,0] }] },
+            options: { responsive:true, maintainAspectRatio:false, plugins:{ legend:{ position:'bottom' } } }
+          });
+        }
+
+        if (!chartTrend){
+          chartTrend = new Chart(ctxT, {
+            type: 'line',
+            data: {
+              labels: [],
+              datasets: [
+                { label:'Gelir (Tahmin)', data: [] },
+                { label:'Gider (Tahmin)', data: [] },
+                { label:'Net (Tahmin)', data: [] }
+              ]
+            },
+            options: {
+              responsive:true, maintainAspectRatio:false,
+              plugins:{ legend:{ position:'bottom' } },
+              scales:{ y:{ ticks:{ callback:(v)=> `${Number(v).toLocaleString()} TL` } } }
+            }
+          });
+        }
+
+        if (!chartCat){
+          chartCat = new Chart(ctxC, {
+            type: 'bar',
+            data: { labels: [], datasets: [{ label:'Gider (Tahmin)', data: [] }] },
+            options: {
+              responsive:true, maintainAspectRatio:false,
+              plugins:{ legend:{ display:false } },
+              scales:{ y:{ ticks:{ callback:(v)=> `${Number(v).toLocaleString()} TL` } } }
+            }
+          });
+        }
+
+        return true;
+      }
+
+      function updateAnalysisCharts(){
+        const ok = ensureCharts();
+        if (!ok) { toast('Chart.js yüklenmedi', 'err'); return; }
+
+        const y = viewDate.getFullYear();
+        const m = viewDate.getMonth();
+        const list = entries.map(e => normalizeEntry(e, y, m));
+        const s = calculateMonth(list, y, m);
+
+        // Donut: bu ay tahmin
+        chartMonth.data.datasets[0].data = [s.incForecast, s.outForecast];
+        chartMonth.update();
+
+        // Trend: son 12 ay
+        const labels = [];
+        const incArr = [];
+        const outArr = [];
+        const netArr = [];
+
+        for (let i=11; i>=0; i--){
+          const d = new Date(y, m - i, 1);
+          const yy = d.getFullYear();
+          const mm = d.getMonth();
+          const lst = getMonthEntries(yy, mm);
+          const ss = calculateMonth(lst, yy, mm);
+          labels.push(`${aylar[mm]} ${yy}`);
+          incArr.push(ss.incForecast);
+          outArr.push(ss.outForecast);
+          netArr.push(ss.netForecast);
+        }
+
+        chartTrend.data.labels = labels;
+        chartTrend.data.datasets[0].data = incArr;
+        chartTrend.data.datasets[1].data = outArr;
+        chartTrend.data.datasets[2].data = netArr;
+        chartTrend.update();
+
+        // Kategori: bu ay giderler
+        const catMap = new Map();
+        for (const e of list){
+          if (e.type !== 'gider') continue;
+          const v = (e.status === 'paid' || e.status === 'pending' || e.status === 'overdue') ? e.amount : 0;
+          if (!v) continue;
+          const k = e.category || 'Genel';
+          catMap.set(k, (catMap.get(k) || 0) + v);
+        }
+        const catLabels = Array.from(catMap.keys());
+        const catVals = catLabels.map(k => catMap.get(k) || 0);
+
+        chartCat.data.labels = catLabels.length ? catLabels : ['(Kategori yok)'];
+        chartCat.data.datasets[0].data = catVals.length ? catVals : [0];
+        chartCat.update();
+
+        // Modal açılınca ölçü problemi varsa
+        requestAnimationFrame(() => {
+          try { chartMonth.resize(); chartTrend.resize(); chartCat.resize(); } catch {}
+        });
+      }
+
+      function bindChartTabs() {
+        document.querySelectorAll('#chartModal .tab').forEach(tab => {
+          tab.addEventListener('click', () => {
+            const target = tab.getAttribute('data-tab');
+            document.querySelectorAll('#chartModal .tab').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('#chartModal .tabpane').forEach(p => p.classList.remove('active'));
+            tab.classList.add('active');
+            const pane = document.getElementById(target);
+            if (pane) pane.classList.add('active');
+
+            // Sekme değişince chart'lar bozulmasın
+            requestAnimationFrame(() => {
+              try { chartMonth && chartMonth.resize(); } catch {}
+              try { chartTrend && chartTrend.resize(); } catch {}
+              try { chartCat && chartCat.resize(); } catch {}
+            });
+          });
+        });
+      }
+
+      // =========================
+      // DRIVE
+      // =========================
       async function driveRequest(url, options = {}) {
         if (!accessToken) throw new Error('NO_TOKEN');
         const res = await fetch(url, { ...options, headers: { ...(options.headers||{}), Authorization: `Bearer ${accessToken}` } });
@@ -1072,8 +1321,8 @@
           const res = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', { headers:{ Authorization:`Bearer ${accessToken}` }});
           if (!res.ok) return;
           const user = await res.json();
-          if (user?.email) { document.getElementById('user-email').textContent = user.email; document.getElementById('user-info').classList.remove('hidden'); }
-          if (user?.picture) document.getElementById('user-img').src = user.picture;
+          if (user?.email) { $('user-email').textContent = user.email; $('user-info').classList.remove('hidden'); }
+          if (user?.picture) $('user-img').src = user.picture;
         } catch {}
       }
 
@@ -1157,6 +1406,9 @@
         toast('Bulut eşitlendi', 'info');
       }
 
+      // =========================
+      // SESSION
+      // =========================
       function formatMMSS(ms) {
         const t = Math.max(0, Math.ceil(ms/1000));
         const mm = String(Math.floor(t/60)).padStart(2,'0');
@@ -1164,18 +1416,9 @@
         return `${mm}:${ss}`;
       }
 
-      function setCountdownVisible(v) {
-        document.getElementById('session_badge').classList.toggle('hidden', !v);
-      }
-
-      function renderCountdown() {
-        const left = sessionExpireAt - Date.now();
-        document.getElementById('session_countdown').textContent = formatMMSS(left);
-      }
-
-      function setSessionState(label) {
-        document.getElementById('session_state').textContent = label;
-      }
+      function setCountdownVisible(v) { $('session_badge').classList.toggle('hidden', !v); }
+      function renderCountdown() { $('session_countdown').textContent = formatMMSS(sessionExpireAt - Date.now()); }
+      function setSessionState(label) { $('session_state').textContent = label; }
 
       function stopCountdown() {
         if (countdownTimer) { clearInterval(countdownTimer); countdownTimer = null; }
@@ -1259,6 +1502,9 @@
         window.addEventListener('mousemove', touchSessionFromMouseMove, { passive:true });
       }
 
+      // =========================
+      // AUTH
+      // =========================
       function initTokenClient() {
         tokenClient = google.accounts.oauth2.initTokenClient({
           client_id: CLIENT_ID,
@@ -1283,29 +1529,66 @@
         tokenClient.requestAccessToken();
       }
 
-      function bindChartTabs() {
-        document.querySelectorAll('#chartModal .tab').forEach(tab => {
-          tab.addEventListener('click', () => {
-            const target = tab.getAttribute('data-tab');
-            document.querySelectorAll('#chartModal .tab').forEach(t => t.classList.remove('active'));
-            document.querySelectorAll('#chartModal .tabpane').forEach(p => p.classList.remove('active'));
-            tab.classList.add('active');
-            const pane = document.getElementById(target);
-            if (pane) pane.classList.add('active');
-          });
-        });
+      // =========================
+      // UI helpers (quick add)
+      // =========================
+      function inferCategory(name) {
+        const n = (name || '').toLowerCase();
+        const rules = [
+          { k:['kira'], c:'Kira' },
+          { k:['elektrik','su','doğalgaz','internet','telefon','fatura'], c:'Fatura' },
+          { k:['market','migros','carrefour'], c:'Market' },
+          { k:['yakıt','akaryakıt','benzin','dizel'], c:'Ulaşım' },
+          { k:['yemek','restoran'], c:'Yemek' },
+          { k:['kredi','taksit'], c:'Kredi' },
+          { k:['altın','gram','çeyrek'], c:'Altın' },
+          { k:['maaş','prim'], c:'Gelir' }
+        ];
+        for (const r of rules) if (r.k.some(x=>n.includes(x)) && categories.includes(r.c)) return r.c;
+        return categories.includes('Genel') ? 'Genel' : (categories[0] || 'Genel');
       }
 
+      function quickAddParse(text) {
+        const t = (text || '').trim();
+        if (!t) return null;
+        const parts = t.split(/\s+/);
+        if (parts.length < 3) return null;
+
+        let type = parts.some(p => p.toLowerCase() === 'gelir') ? 'gelir' : 'gider';
+        if (parts.some(p => p.toLowerCase() === 'gider')) type = 'gider';
+
+        const repeat = parts.some(p => p.toLowerCase() === 'aylık' || p.toLowerCase() === 'monthly') ? 'monthly' : 'none';
+
+        let amount = null;
+        let day = null;
+
+        for (const p of parts) {
+          const n = parseMoney(p);
+          if (n.ok && amount === null) { amount = n.value; continue; }
+          const di = Number.parseInt(p, 10);
+          if (Number.isFinite(di) && di >= 1 && di <= 31 && day === null) day = di;
+        }
+        if (amount === null) return null;
+        if (day === null) day = 1;
+
+        const idxAmount = parts.findIndex(p => parseMoney(p).ok);
+        const name = parts.slice(0, idxAmount).join(' ').trim() || 'İşlem';
+        return { name, amount, day, type, repeat };
+      }
+
+      // =========================
+      // EVENTS
+      // =========================
       function bindEvents() {
-        document.getElementById('auth_btn').addEventListener('click', handleAuthClick);
-        document.getElementById('btn_backup').addEventListener('click', async () => { try { await syncToDrive(false); } catch (e) { toast(String(e?.message||e), 'err'); }});
-        document.getElementById('btn_logout').addEventListener('click', handleLogout);
+        $('auth_btn').addEventListener('click', handleAuthClick);
+        $('btn_backup').addEventListener('click', async () => { try { await syncToDrive(false); } catch (e) { toast(String(e?.message||e), 'err'); }});
+        $('btn_logout').addEventListener('click', handleLogout);
 
-        document.getElementById('btn_theme').addEventListener('click', toggleTheme);
-        document.getElementById('btn_prev').addEventListener('click', () => { viewDate.setMonth(viewDate.getMonth() - 1); loadData(); });
-        document.getElementById('btn_next').addEventListener('click', () => { viewDate.setMonth(viewDate.getMonth() + 1); loadData(); });
+        $('btn_theme').addEventListener('click', toggleTheme);
+        $('btn_prev').addEventListener('click', () => { viewDate.setMonth(viewDate.getMonth() - 1); loadData(); });
+        $('btn_next').addEventListener('click', () => { viewDate.setMonth(viewDate.getMonth() + 1); loadData(); });
 
-        document.getElementById('btn_add').addEventListener('click', () => {
+        $('btn_add').addEventListener('click', () => {
           const y = viewDate.getFullYear();
           const m = viewDate.getMonth();
           entries.push(normalizeEntry({ name:'', amount:0, type:'gider', status:'pending', billDay:1, category:'Genel', repeat:'none' }, y, m));
@@ -1313,80 +1596,42 @@
           renderAll();
         });
 
-        document.getElementById('btn_yearly').addEventListener('click', () => {
+        $('btn_yearly').addEventListener('click', () => {
           const year = viewDate.getFullYear();
-          document.getElementById('yearly-title').innerHTML = '<span class="ico">📅</span>' + year + ' Yıllık Özet';
-          const host = document.getElementById('yearly-content');
+          $('yearly-title').innerHTML = '<span class="ico">📅</span>' + year + ' Yıllık Özet';
+          const host = $('yearly-content');
           host.textContent = '';
           host.appendChild(buildYearlyTable(year));
           showModal('yearlyModal');
         });
 
-        document.getElementById('btn_chart').addEventListener('click', () => { updateAnalysisCharts(); showModal('chartModal'); });
+        // FIX: ANALIZ ARTIK ÇALIŞIR
+        $('btn_chart').addEventListener('click', () => {
+          showModal('chartModal');
+          updateAnalysisCharts();
+        });
 
-        document.getElementById('btn_pdf').addEventListener('click', () => {
+        $('btn_pdf').addEventListener('click', () => {
           const element = document.querySelector('.budget-card');
           const opt = { margin: 10, filename: `Butce_${aylar[viewDate.getMonth()]}_${viewDate.getFullYear()}.pdf`, html2canvas: { scale: 2 }, jsPDF: { unit: 'mm', format: 'a4' } };
           html2pdf().set(opt).from(element).save();
         });
 
-        document.getElementById('btn_settings').addEventListener('click', () => { renderCategoryChips(); showModal('settingsModal'); });
-        document.getElementById('btn_search').addEventListener('click', () => {
-          const p = document.getElementById('search_panel');
+        $('btn_settings').addEventListener('click', () => { renderCategoryChips(); showModal('settingsModal'); });
+
+        $('btn_search').addEventListener('click', () => {
+          const p = $('search_panel');
           p.classList.toggle('hidden');
         });
 
-        document.getElementById('btn_quick_add').addEventListener('click', () => {
-          const q = document.getElementById('quick_input').value;
-          const parsed = (() => {
-            const t = (q || '').trim();
-            if (!t) return null;
-            const parts = t.split(/\s+/);
-            if (parts.length < 3) return null;
-
-            let type = parts.some(p => p.toLowerCase() === 'gelir') ? 'gelir' : 'gider';
-            if (parts.some(p => p.toLowerCase() === 'gider')) type = 'gider';
-
-            const repeat = parts.some(p => p.toLowerCase() === 'aylık' || p.toLowerCase() === 'monthly') ? 'monthly' : 'none';
-
-            let amount = null;
-            let day = null;
-
-            for (const p of parts) {
-              const n = parseMoney(p);
-              if (n.ok && amount === null) { amount = n.value; continue; }
-              const di = Number.parseInt(p, 10);
-              if (Number.isFinite(di) && di >= 1 && di <= 31 && day === null) day = di;
-            }
-            if (amount === null) return null;
-            if (day === null) day = 1;
-
-            const idxAmount = parts.findIndex(p => parseMoney(p).ok);
-            const name = parts.slice(0, idxAmount).join(' ').trim() || 'İşlem';
-            return { name, amount, day, type, repeat };
-          })();
-
+        $('btn_quick_add').addEventListener('click', () => {
+          const q = $('quick_input').value;
+          const parsed = quickAddParse(q);
           if (!parsed) { toast('Hızlı ekleme formatı hatalı', 'err'); return; }
-          document.getElementById('quick_input').value = '';
+          $('quick_input').value = '';
 
           const y = viewDate.getFullYear();
           const m = viewDate.getMonth();
-          const inferCategory = (name) => {
-            const n = (name || '').toLowerCase();
-            const rules = [
-              { k:['kira'], c:'Kira' },
-              { k:['elektrik','su','doğalgaz','internet','telefon','fatura'], c:'Fatura' },
-              { k:['market','migros','carrefour'], c:'Market' },
-              { k:['yakıt','akaryakıt','benzin','dizel'], c:'Ulaşım' },
-              { k:['yemek','restoran'], c:'Yemek' },
-              { k:['kredi','taksit'], c:'Kredi' },
-              { k:['altın','gram','çeyrek'], c:'Altın' },
-              { k:['maaş','prim'], c:'Gelir' }
-            ];
-            for (const r of rules) if (r.k.some(x=>n.includes(x)) && categories.includes(r.c)) return r.c;
-            return categories.includes('Genel') ? 'Genel' : (categories[0] || 'Genel');
-          };
-
           const ne = normalizeEntry({
             name: parsed.name,
             amount: parsed.amount,
@@ -1403,17 +1648,17 @@
           toast('Eklendi', 'ok');
         });
 
-        document.getElementById('quick_input').addEventListener('keydown', (e) => { if (e.key === 'Enter') document.getElementById('btn_quick_add').click(); });
+        $('quick_input').addEventListener('keydown', (e) => { if (e.key === 'Enter') $('btn_quick_add').click(); });
 
         ['f_search','f_type','f_status','f_cat','f_sort'].forEach(id => {
-          document.getElementById(id).addEventListener('input', renderAll);
-          document.getElementById(id).addEventListener('change', renderAll);
+          $(id).addEventListener('input', renderAll);
+          $(id).addEventListener('change', renderAll);
         });
 
         document.querySelectorAll('[data-close]').forEach(btn => btn.addEventListener('click', () => closeModal(btn.getAttribute('data-close'))));
-        ['chartModal','settingsModal','yearlyModal'].forEach(id => document.getElementById(id).addEventListener('click', (e) => { if (e.target && e.target.id === id) closeModal(id); }));
+        ['chartModal','settingsModal','yearlyModal'].forEach(id => $(id).addEventListener('click', (e) => { if (e.target && e.target.id === id) closeModal(id); }));
 
-        document.getElementById('btn_reset').addEventListener('click', () => {
+        $('btn_reset').addEventListener('click', () => {
           const c1 = confirm('Yerel veriler silinecek. Emin misiniz?'); if (!c1) return;
           const c2 = confirm('Son onay. Silinsin mi?'); if (!c2) return;
           for (let i=localStorage.length-1; i>=0; i--) { const k = localStorage.key(i); if (k && k.startsWith(STORAGE_PREFIX)) localStorage.removeItem(k); }
@@ -1421,7 +1666,7 @@
           toast('Yerel veriler sıfırlandı', 'info');
         });
 
-        document.getElementById('btn_undo').addEventListener('click', () => {
+        $('btn_undo').addEventListener('click', () => {
           const it = undoStack.pop();
           if (!it) { toast('Geri alınacak işlem yok', 'info'); return; }
           const y = viewDate.getFullYear();
@@ -1439,242 +1684,33 @@
           }
         });
 
-        document.getElementById('btn_add_cat').addEventListener('click', () => {
-          const v = (document.getElementById('cat_input').value || '').trim();
+        $('btn_add_cat').addEventListener('click', () => {
+          const v = ($('cat_input').value || '').trim();
           if (!v) return;
           if (!categories.includes(v)) categories.push(v);
-          document.getElementById('cat_input').value = '';
+          $('cat_input').value = '';
           saveCategories();
           renderFilters();
           renderCategoryChips();
           renderAll();
           toast('Kategori eklendi', 'ok');
         });
-        document.getElementById('cat_input').addEventListener('keydown', (e) => { if (e.key === 'Enter') document.getElementById('btn_add_cat').click(); });
 
-        document.getElementById('btn_notify').addEventListener('click', async () => {
+        $('cat_input').addEventListener('keydown', (e) => { if (e.key === 'Enter') $('btn_add_cat').click(); });
+
+        $('btn_notify').addEventListener('click', async () => {
           if (!('Notification' in window)) { toast('Bildirim desteklenmiyor', 'err'); return; }
           const p = await Notification.requestPermission();
           safeSetItem(NOTIFY_KEY, p === 'granted' ? '1' : '0');
           toast(p === 'granted' ? 'Bildirim açık' : 'Bildirim kapalı', p === 'granted' ? 'ok' : 'info');
         });
 
-        document.getElementById('btn_sync').addEventListener('click', async () => {
+        $('btn_sync').addEventListener('click', async () => {
           if (!accessToken || !driveFileId) { toast('Önce Google ile bağlan', 'err'); return; }
           try { await syncFromDrive(); } catch (e) { toast(String(e?.message||e), 'err'); }
         });
       }
-      function monthKeyBy(year, monthIndex0){
-        return `${STORAGE_PREFIX}${aylar[monthIndex0]}_${year}`;
-      }
 
-      function yearMonthFromKey(key){
-        // key: butce_OCAK_2026
-        const p = String(key||'').split('_');
-        if (p.length < 3) return null;
-        const monthName = p[1];
-        const year = Number(p[2]);
-        const mi = aylar.indexOf(monthName);
-        if (!Number.isFinite(year) || mi < 0) return null;
-        return { year, monthIndex0: mi };
-      }
-
-      function monthLabelTR(year, monthIndex0){
-        return `${aylar[monthIndex0]} ${year}`;
-      }
-
-      function getMonthEntries(year, monthIndex0){
-        const key = monthKeyBy(year, monthIndex0);
-        const raw = localStorage.getItem(key);
-        const parsed = safeJsonParse(raw, []);
-        return Array.isArray(parsed) ? parsed.map(e => normalizeEntry(e, year, monthIndex0)) : [];
-      }
-
-      function buildYearlyTable(year){
-        const wrap = document.createElement('div');
-
-        const table = document.createElement('table');
-        table.style.width = '100%';
-        table.style.borderCollapse = 'separate';
-        table.style.borderSpacing = '0 8px';
-        table.style.fontSize = '12px';
-
-        const head = document.createElement('tr');
-        ['Ay','Gelir (Alınan)','Gelir (Bekleyen)','Gider (Ödenen)','Gider (Bekleyen+Geciken)','Net (Tahmini)'].forEach(t=>{
-          const th=document.createElement('th');
-          th.textContent=t;
-          th.style.textAlign='left';
-          th.style.padding='10px';
-          th.style.background='var(--header-bg)';
-          th.style.border='1px solid var(--border)';
-          th.style.borderLeft='none';
-          th.style.borderRight='none';
-          th.style.fontWeight='900';
-          head.appendChild(th);
-        });
-        table.appendChild(head);
-
-        let sumIncPaid=0, sumIncPend=0, sumExpPaid=0, sumExpPendOver=0, sumNet=0;
-
-        for (let m=0; m<12; m++){
-          const list = getMonthEntries(year, m);
-          const s = calculateMonth(list, year, m);
-
-          sumIncPaid += s.incPaid;
-          sumIncPend += s.incPending;
-          sumExpPaid += s.expPaid;
-          sumExpPendOver += (s.expPending + s.expOver);
-          sumNet += s.netForecast;
-
-          const tr = document.createElement('tr');
-          const cells = [
-            aylar[m],
-            `${s.incPaid.toLocaleString()} TL`,
-            `${s.incPending.toLocaleString()} TL`,
-            `${s.expPaid.toLocaleString()} TL`,
-            `${(s.expPending + s.expOver).toLocaleString()} TL`,
-            `${s.netForecast.toLocaleString()} TL`,
-          ];
-          cells.forEach((v, i)=>{
-            const td=document.createElement('td');
-            td.textContent=v;
-            td.style.padding='10px';
-            td.style.background='var(--primary)';
-            td.style.border='1px solid var(--border)';
-            td.style.borderLeft='none';
-            td.style.borderRight='none';
-            td.style.fontWeight = i===0 ? '900' : '700';
-            tr.appendChild(td);
-          });
-          table.appendChild(tr);
-        }
-
-        const total = document.createElement('div');
-        total.className = 'chip';
-        total.style.marginTop = '10px';
-        total.innerHTML =
-          `<span class="ico">∑</span>
-           <span>Toplam:</span>
-           <span style="font-weight:900">Gelir ${sumIncPaid.toLocaleString()} TL</span>
-           <span style="opacity:.6">+</span>
-           <span style="font-weight:900">Bekleyen ${sumIncPend.toLocaleString()} TL</span>
-           <span style="opacity:.6">|</span>
-           <span style="font-weight:900">Gider ${sumExpPaid.toLocaleString()} TL</span>
-           <span style="opacity:.6">+</span>
-           <span style="font-weight:900">Bekleyen ${sumExpPendOver.toLocaleString()} TL</span>
-           <span style="opacity:.6">|</span>
-           <span style="font-weight:900">Net ${sumNet.toLocaleString()} TL</span>`;
-
-        wrap.appendChild(table);
-        wrap.appendChild(total);
-        return wrap;
-      }
-
-      function ensureCharts(){
-        if (typeof Chart === 'undefined') return false;
-
-        const ctxM = document.getElementById('chart_month')?.getContext('2d');
-        const ctxT = document.getElementById('chart_trend')?.getContext('2d');
-        const ctxC = document.getElementById('chart_cat')?.getContext('2d');
-        if (!ctxM || !ctxT || !ctxC) return false;
-
-        if (!chartMonth){
-          chartMonth = new Chart(ctxM, {
-            type: 'doughnut',
-            data: { labels: ['Gelir (Tahmin)', 'Gider (Tahmin)'], datasets: [{ data: [0,0] }] },
-            options: { responsive:true, maintainAspectRatio:false, plugins:{ legend:{ position:'bottom' } } }
-          });
-        }
-
-        if (!chartTrend){
-          chartTrend = new Chart(ctxT, {
-            type: 'line',
-            data: { labels: [], datasets: [
-              { label:'Gelir (Tahmin)', data: [] },
-              { label:'Gider (Tahmin)', data: [] },
-              { label:'Net (Tahmin)', data: [] },
-            ]},
-            options: {
-              responsive:true, maintainAspectRatio:false,
-              plugins:{ legend:{ position:'bottom' } },
-              scales:{ y:{ ticks:{ callback:(v)=> `${Number(v).toLocaleString()} TL` } } }
-            }
-          });
-        }
-
-        if (!chartCat){
-          chartCat = new Chart(ctxC, {
-            type: 'bar',
-            data: { labels: [], datasets: [{ label:'Gider (Tahmin)', data: [] }] },
-            options: {
-              responsive:true, maintainAspectRatio:false,
-              plugins:{ legend:{ display:false } },
-              scales:{ y:{ ticks:{ callback:(v)=> `${Number(v).toLocaleString()} TL` } } }
-            }
-          });
-        }
-
-        return true;
-      }
-
-      function updateAnalysisCharts(){
-        const ok = ensureCharts();
-        if (!ok) { toast('Chart.js yüklenmedi', 'err'); return; }
-
-        const y = viewDate.getFullYear();
-        const m = viewDate.getMonth();
-        const list = entries.map(e => normalizeEntry(e, y, m));
-        const s = calculateMonth(list, y, m);
-
-        const incForecast = s.incPaid + s.incPending;
-        const outForecast = s.expPaid + s.expPending + s.expOver;
-
-        // Aylık donut
-        chartMonth.data.datasets[0].data = [incForecast, outForecast];
-        chartMonth.update();
-
-        // 12 ay trend (son 12 ay)
-        const labels = [];
-        const incArr = [];
-        const outArr = [];
-        const netArr = [];
-
-        for (let i=11; i>=0; i--){
-          const d = new Date(y, m - i, 1);
-          const yy = d.getFullYear();
-          const mm = d.getMonth();
-          const lst = getMonthEntries(yy, mm);
-          const ss = calculateMonth(lst, yy, mm);
-          const incF = ss.incPaid + ss.incPending;
-          const outF = ss.expPaid + ss.expPending + ss.expOver;
-          labels.push(monthLabelTR(yy, mm));
-          incArr.push(incF);
-          outArr.push(outF);
-          netArr.push(incF - outF);
-        }
-
-        chartTrend.data.labels = labels;
-        chartTrend.data.datasets[0].data = incArr;
-        chartTrend.data.datasets[1].data = outArr;
-        chartTrend.data.datasets[2].data = netArr;
-        chartTrend.update();
-
-        // Kategori gider dağılımı (mevcut ay)
-        const catMap = new Map();
-        for (const e of list){
-          if (e.type !== 'gider') continue;
-          const v = (e.status === 'paid' || e.status === 'pending' || e.status === 'overdue') ? e.amount : 0;
-          if (!v) continue;
-          const k = e.category || 'Genel';
-          catMap.set(k, (catMap.get(k) || 0) + v);
-        }
-        const catLabels = Array.from(catMap.keys());
-        const catVals = catLabels.map(k => catMap.get(k) || 0);
-
-        chartCat.data.labels = catLabels.length ? catLabels : ['(Kategori yok)'];
-        chartCat.data.datasets[0].data = catVals.length ? catVals : [0];
-        chartCat.update();
-      }
       function init() {
         loadTheme();
         loadCategories();
@@ -1696,4 +1732,3 @@
   </script>
 </body>
 </html>
-
