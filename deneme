@@ -1,0 +1,353 @@
+<!doctype html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Fatura Takip (Alt Sayfa)</title>
+
+  <!-- NOT:
+    API modunu kullanacaksan CSP connect-src içine backend domainini ekle.
+    Örn: connect-src 'self' http://localhost:8787;
+  -->
+  <meta http-equiv="Content-Security-Policy" content="
+    default-src 'self';
+    style-src 'self' https://fonts.googleapis.com;
+    font-src  https://fonts.gstatic.com;
+    img-src   'self' data:;
+    connect-src 'self' http://localhost:8787;
+    base-uri 'self';
+    form-action 'self';
+    object-src 'none';
+    frame-ancestors 'none';
+    upgrade-insecure-requests;
+  " />
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;800;900&display=swap" rel="stylesheet">
+
+  <style>
+    :root{
+      --bg:#f8fafc; --card:#fff; --border:#e2e8f0; --dim:#64748b; --txt:#1e293b; --accent:#4f46e5;
+      --ok:#10b981; --err:#ef4444; --warn:#f59e0b;
+      --shadow:0 10px 40px rgba(0,0,0,0.06);
+    }
+    [data-theme="dark"]{
+      --bg:#0f172a; --card:#1e293b; --border:#334155; --dim:#94a3b8; --txt:#f1f5f9; --accent:#818cf8;
+      --shadow:0 10px 40px rgba(0,0,0,0.25);
+    }
+    *{box-sizing:border-box}
+    body{
+      margin:0; background:var(--bg); color:var(--txt);
+      font-family:'Poppins',system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;
+      padding:14px;
+      display:flex; justify-content:center;
+    }
+    .wrap{width:100%; max-width:980px;}
+    .hdr{
+      display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap;
+      padding:12px 16px; background:var(--card); border:1px solid var(--border); border-radius:16px; box-shadow:var(--shadow);
+    }
+    .title{margin:0; font-weight:900; font-size:18px;}
+    .btn{
+      border:none; background:var(--accent); color:#fff; font-weight:900;
+      padding:10px 12px; border-radius:12px; cursor:pointer; font-size:12px;
+      display:inline-flex; gap:8px; align-items:center; line-height:1;
+    }
+    .btn-tool{background:transparent; border:1px solid var(--border); color:var(--txt);}
+    .ico{width:1.1em; display:inline-flex; justify-content:center;}
+    .card{
+      margin-top:12px; background:var(--card); border:1px solid var(--border); border-radius:16px; box-shadow:var(--shadow);
+      overflow:hidden;
+    }
+    .card-h{
+      padding:10px 14px; font-size:11px; font-weight:900; color:var(--dim);
+      background:rgba(100,116,139,0.08); border-bottom:1px solid var(--border);
+      text-transform:uppercase;
+    }
+    .card-b{padding:14px;}
+    .grid{
+      display:grid; gap:10px;
+      grid-template-columns: 1.2fr 1.8fr 1fr;
+    }
+    @media (max-width:800px){ .grid{grid-template-columns:1fr} }
+    select,input{
+      width:100%;
+      padding:10px 12px; border-radius:12px;
+      border:1.5px solid var(--border);
+      background:var(--bg); color:var(--txt);
+      font-weight:700; font-size:12px;
+      outline:none;
+    }
+    input::placeholder{color:var(--dim)}
+    .muted{color:var(--dim); font-size:11px; font-weight:800;}
+    .row{display:flex; gap:10px; flex-wrap:wrap; align-items:center;}
+    .hr{border:none; border-top:1px solid var(--border); margin:14px 0;}
+    .stat{
+      padding:12px; border-radius:14px; border:1px solid var(--border); background:var(--bg);
+    }
+    .stat small{display:block; color:var(--dim); font-weight:900;}
+    .stat .val{margin-top:6px; font-weight:900; font-size:18px;}
+    .pill{
+      display:inline-flex; gap:8px; align-items:center;
+      padding:8px 10px; border-radius:999px; border:1px solid var(--border);
+      background:var(--bg); font-weight:900; font-size:11px;
+    }
+    .toast{
+      position:fixed; left:50%; bottom:22px; transform:translateX(-50%) translateY(120px);
+      background:var(--accent); color:#fff; padding:10px 14px; border-radius:14px; font-weight:900; font-size:12px;
+      box-shadow:0 12px 30px rgba(0,0,0,0.25);
+      transition:.25s;
+      z-index:9999;
+    }
+    .toast.show{transform:translateX(-50%) translateY(0);}
+    .t-ok{background:var(--ok)}
+    .t-err{background:var(--err)}
+    .t-warn{background:var(--warn)}
+    .list{display:flex; flex-direction:column; gap:8px;}
+    .item{
+      display:flex; justify-content:space-between; gap:10px; flex-wrap:wrap;
+      padding:10px 12px; border-radius:14px; border:1px solid var(--border); background:var(--bg);
+      font-size:12px; font-weight:800;
+    }
+    .item .l{display:flex; gap:10px; flex-wrap:wrap; align-items:center;}
+    .item .r{color:var(--dim); font-weight:900; font-size:11px;}
+    .link{color:var(--accent); font-weight:900; text-decoration:none;}
+  </style>
+</head>
+
+<body>
+  <div class="wrap">
+    <div class="hdr">
+      <h1 class="title">Fatura Takip</h1>
+      <div class="row">
+        <button id="btn_theme" class="btn btn-tool" type="button"><span class="ico">🌗</span>Tema</button>
+        <a class="btn btn-tool link" href="./index.html"><span class="ico">↩</span>Ana sayfa</a>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-h">Sorgu</div>
+      <div class="card-b">
+        <div class="grid">
+          <div>
+            <div class="muted">Kurum</div>
+            <select id="provider">
+              <option value="aski">ASKİ Su (Ankara)</option>
+              <option value="enerjisa">Enerjisa Ankara Elektrik</option>
+              <option value="ttmobil">Türk Telekom Mobil</option>
+            </select>
+          </div>
+
+          <div>
+            <div class="muted">Abone / Tesisat / Hat No</div>
+            <input id="subscriber" placeholder="örn: 1234567890">
+          </div>
+
+          <div>
+            <div class="muted">Mod</div>
+            <select id="mode">
+              <option value="mock">MOCK (demo)</option>
+              <option value="api">API (backend)</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="row" style="margin-top:10px;">
+          <button id="btn_query" class="btn" type="button"><span class="ico">🔎</span>Sorgula</button>
+          <button id="btn_clear" class="btn btn-tool" type="button"><span class="ico">🧹</span>Geçmişi Sil</button>
+          <span class="pill"><span class="ico">🔒</span>Abone no saklama: yerel</span>
+        </div>
+
+        <div id="status" class="muted" style="margin-top:10px;"></div>
+
+        <div id="result" class="stat" style="margin-top:10px; display:none;">
+          <small>Son Durum</small>
+          <div class="val" id="amount">-</div>
+          <div class="muted" id="meta" style="margin-top:6px;">-</div>
+          <div class="muted" id="due" style="margin-top:4px;">-</div>
+        </div>
+
+        <hr class="hr">
+
+        <div class="muted" style="margin-bottom:8px;">Geçmiş (son 50)</div>
+        <div id="history" class="list"></div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    (() => {
+      'use strict';
+
+      const THEME_KEY = 'bill_theme_v1';
+      const HISTORY_KEY = 'bill_history_v1';
+      const API_BASE = 'http://localhost:8787'; // backend adresin
+
+      const $ = (id) => document.getElementById(id);
+
+      function toast(msg, type='ok'){
+        const t = document.createElement('div');
+        t.className = `toast ${type==='err'?'t-err':type==='warn'?'t-warn':'t-ok'}`;
+        t.textContent = String(msg || '');
+        document.body.appendChild(t);
+        setTimeout(()=>t.classList.add('show'), 30);
+        setTimeout(()=>{ t.classList.remove('show'); setTimeout(()=>t.remove(), 250); }, 2400);
+      }
+
+      function safeJsonParse(raw, fallback){
+        try{ return JSON.parse(raw); }catch{ return fallback; }
+      }
+
+      function applyTheme(theme){
+        document.body.setAttribute('data-theme', theme === 'dark' ? 'dark' : 'light');
+      }
+      function loadTheme(){
+        const t = localStorage.getItem(THEME_KEY);
+        applyTheme(t === 'dark' ? 'dark' : 'light');
+      }
+      function toggleTheme(){
+        const cur = document.body.getAttribute('data-theme') === 'dark' ? 'dark' : 'light';
+        const next = cur === 'dark' ? 'light' : 'dark';
+        localStorage.setItem(THEME_KEY, next);
+        applyTheme(next);
+      }
+
+      function providerLabel(p){
+        if (p === 'aski') return 'ASKİ';
+        if (p === 'enerjisa') return 'Enerjisa';
+        if (p === 'ttmobil') return 'Türk Telekom Mobil';
+        return String(p || '-');
+      }
+
+      function loadHistory(){
+        const raw = localStorage.getItem(HISTORY_KEY);
+        const arr = safeJsonParse(raw, []);
+        return Array.isArray(arr) ? arr : [];
+      }
+      function saveHistory(arr){
+        localStorage.setItem(HISTORY_KEY, JSON.stringify(arr.slice(0, 50)));
+      }
+
+      function renderHistory(){
+        const host = $('history');
+        host.textContent = '';
+        const list = loadHistory();
+        if (list.length === 0){
+          const d = document.createElement('div');
+          d.className = 'muted';
+          d.textContent = 'Kayıt yok';
+          host.appendChild(d);
+          return;
+        }
+        for (const it of list){
+          const row = document.createElement('div');
+          row.className = 'item';
+          const left = document.createElement('div');
+          left.className = 'l';
+          left.innerHTML = `
+            <span class="pill"><span class="ico">🏷</span>${providerLabel(it.provider)}</span>
+            <span class="pill"><span class="ico">💳</span>${Number(it.amount||0).toLocaleString('tr-TR')} TL</span>
+            <span class="pill"><span class="ico">📅</span>Son ödeme: ${it.dueDate || '-'}</span>
+            <span class="pill"><span class="ico">🗓</span>Dönem: ${it.period || '-'}</span>
+          `;
+          const right = document.createElement('div');
+          right.className = 'r';
+          right.textContent = new Date(it.at).toLocaleString('tr-TR');
+          row.appendChild(left);
+          row.appendChild(right);
+          host.appendChild(row);
+        }
+      }
+
+      // MOCK: backend yokken demo
+      function mockQuery(provider){
+        const now = new Date();
+        const yyyy = now.getFullYear();
+        const mm = String(now.getMonth()+1).padStart(2,'0');
+        const due = new Date(yyyy, now.getMonth(), Math.min(25, 28));
+        const dueDate = `${due.getFullYear()}-${String(due.getMonth()+1).padStart(2,'0')}-${String(due.getDate()).padStart(2,'0')}`;
+        const base = provider === 'aski' ? 320 : provider === 'enerjisa' ? 980 : provider === 'ttmobil' ? 450 : 250;
+        return {
+          amount: base,
+          dueDate,
+          period: `${yyyy}-${mm}`,
+          ref: `MOCK-${provider}-${Date.now()}`
+        };
+      }
+
+      async function apiQuery(provider, subscriber){
+        const res = await fetch(`${API_BASE}/api/bills/query`, {
+          method:'POST',
+          headers:{ 'Content-Type':'application/json' },
+          body: JSON.stringify({ provider, subscriber })
+        });
+        const data = await res.json().catch(()=> ({}));
+        if (!res.ok) throw new Error(data?.error || 'Sorgu hatası');
+        return data;
+      }
+
+      async function runQuery(){
+        const provider = $('provider').value;
+        const subscriber = ($('subscriber').value || '').trim();
+        const mode = $('mode').value;
+
+        $('status').textContent = '';
+        $('result').style.display = 'none';
+
+        if (!subscriber){
+          toast('Abone / tesisat / hat no boş', 'err');
+          return;
+        }
+
+        $('status').textContent = 'Sorgulanıyor...';
+
+        try{
+          const out = mode === 'api'
+            ? await apiQuery(provider, subscriber)
+            : mockQuery(provider);
+
+          $('amount').textContent = `${Number(out.amount||0).toLocaleString('tr-TR')} TL`;
+          $('meta').textContent = `Referans: ${out.ref || '-'} • Kurum: ${providerLabel(provider)}`;
+          $('due').textContent = `Son ödeme: ${out.dueDate || '-'} • Dönem: ${out.period || '-'}`;
+          $('result').style.display = 'block';
+          $('status').textContent = 'Güncellendi';
+
+          const hist = loadHistory();
+          hist.unshift({
+            at: new Date().toISOString(),
+            provider,
+            amount: Number(out.amount||0),
+            dueDate: out.dueDate || null,
+            period: out.period || null
+          });
+          saveHistory(hist);
+          renderHistory();
+
+          toast(mode === 'api' ? 'API sorgu tamam' : 'MOCK sorgu tamam', 'ok');
+        }catch(e){
+          $('status').textContent = '';
+          toast(String(e?.message || e), 'err');
+        }
+      }
+
+      function clearHistory(){
+        localStorage.removeItem(HISTORY_KEY);
+        renderHistory();
+        toast('Geçmiş silindi', 'warn');
+      }
+
+      function init(){
+        loadTheme();
+        renderHistory();
+        $('btn_theme').addEventListener('click', toggleTheme);
+        $('btn_query').addEventListener('click', runQuery);
+        $('btn_clear').addEventListener('click', clearHistory);
+        $('subscriber').addEventListener('keydown', (e)=>{ if (e.key === 'Enter') runQuery(); });
+      }
+
+      window.addEventListener('load', init);
+    })();
+  </script>
+</body>
+</html>
