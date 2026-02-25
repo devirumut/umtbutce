@@ -871,7 +871,35 @@
         if (e.status === 'overdue') return 'GECİKTİ';
         return 'BEKLE';
       }
+async function showYearlySummary() {
+    const year = viewDate.getFullYear();
+    let yearlyData = [];
+    
+    // 12 ayı tara ve verileri birleştir
+    for (let m = 0; m < 12; m++) {
+        const key = `butce_${year}_${m}`;
+        const data = JSON.parse(localStorage.getItem(key) || '[]');
+        yearlyData.push({ month: aylar[m], data: data });
+    }
 
+    const modal = document.getElementById('modal_yearly'); // HTML'de bu ID'li bir modal olduğundan emin ol
+    if (modal) {
+        modal.style.display = 'flex';
+        renderYearlyTable(yearlyData); // Tabloyu çizen yardımcı fonksiyon
+    } else {
+        toast('Yıllık tablo modülü bulunamadı', 'err');
+    }
+}
+      function showAnalysis() {
+    document.getElementById('chartModal').classList.remove('hidden');
+    // Grafik oluşturulmadan önce canvas'ı temizle
+    if (myCharts.month) myCharts.month.destroy();
+    
+    // Gecikmeli başlat (DOM'un yerleşmesi için)
+    setTimeout(() => {
+        renderMonthlyChart(); // Mevcut grafik çizim fonksiyonun
+    }, 100);
+}
       function renderRows() {
         const host = document.getElementById('entries-container');
         host.textContent = '';
@@ -1311,6 +1339,11 @@
           entries.push(normalizeEntry({ name:'', amount:0, type:'gider', status:'pending', billDay:1, category:'Genel', repeat:'none' }, y, m));
           saveData();
           renderAll();
+          const btnYearly = document.getElementById('btn_yearly');
+    if(btnYearly) btnYearly.onclick = showYearlySummary;
+
+    const btnAnalysis = document.getElementById('btn_analysis');
+    if(btnAnalysis) btnAnalysis.onclick = showAnalysis;
         });
 
         document.getElementById('btn_yearly').addEventListener('click', () => {
@@ -1486,4 +1519,5 @@
   </script>
 </body>
 </html>
+
 
