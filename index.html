@@ -1488,7 +1488,7 @@
       function touchSessionFromMouseMove() {
         if (!sessionActive) return;
         const now = Date.now();
-        if (now - lastMouseResetAt < MOUSE_RESET_THROTTLE_MS) { setSessionState('IDLE'); return; }
+        if (now - lastMouseResetAt < MOUSE_RESET_THROTTLE_MS) { setSessionState('AKTIF'); return; }
         lastMouseResetAt = now;
         setSessionState('ACTIVE');
         armSessionTimer();
@@ -1732,4 +1732,5 @@
   </script>
 </body>
 </html>
+
 
