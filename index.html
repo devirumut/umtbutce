@@ -3,9 +3,8 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Bütçe Planlama Uygulaması V4.2</title>
+  <title>Bütçe Planlama Uygulaması V4.3</title>
 
-  <!-- CSP: Drive + OAuth için connect-src genişletildi -->
   <meta http-equiv="Content-Security-Policy" content="
     default-src 'self';
     script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://accounts.google.com;
@@ -67,6 +66,7 @@
       cursor: pointer;
       transition: 0.2s;
       box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+      white-space: nowrap;
     }
     .google-btn:hover { background: #f8f9fa; box-shadow: 0 1px 3px 1px rgba(0,0,0,0.15); }
     .google-btn img { width: 18px; height: 18px; }
@@ -274,7 +274,7 @@
     <div class="header-left">
       <h1 style="font-size: 1.3rem; margin:0;">
         Bütçe Planlama Uygulaması
-        <span style="font-size:10px; opacity:0.5;">V4.2</span>
+        <span style="font-size:10px; opacity:0.5;">V4.3</span>
       </h1>
       <div id="user-info" style="display:none; align-items:center; gap:8px;">
         <img id="user-img" alt="user" src="" style="width:24px; height:24px; border-radius:50%;">
@@ -288,10 +288,10 @@
         Google ile Bağlan
       </button>
       <div id="auth_controls" style="display:none; gap:8px;">
-        <button id="btn_backup" class="btn-action" type="button" style="background:#22c55e;">Buluta Yedekle</button>
-        <button id="btn_logout" class="btn-action" type="button" style="background:#64748b;">Güvenli Çıkış</button>
+        <button id="btn_backup" class="btn-action" type="button" style="background:#22c55e;">☁️ Buluta Yedekle</button>
+        <button id="btn_logout" class="btn-action" type="button" style="background:#64748b;">🔒 Güvenli Çıkış</button>
       </div>
-      <button id="btn_theme" type="button" class="btn-action btn-tool">Tema</button>
+      <button id="btn_theme" type="button" class="btn-action btn-tool">🌓 Tema</button>
     </div>
   </div>
 
@@ -326,15 +326,15 @@
       <div class="sticky-controls">
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
           <div style="display:flex; align-items:center; gap:8px;">
-            <button id="btn_prev" type="button" class="btn-action">&lt;</button>
+            <button id="btn_prev" type="button" class="btn-action">❮</button>
             <span id="display-month" style="font-weight:700; min-width:150px; text-align:center;"></span>
-            <button id="btn_next" type="button" class="btn-action">&gt;</button>
+            <button id="btn_next" type="button" class="btn-action">❯</button>
           </div>
           <div style="display:flex; gap:8px; flex-wrap: wrap; justify-content: flex-end;">
-            <button id="btn_yearly" type="button" class="btn-action btn-tool">Yıllık Analiz</button>
-            <button id="btn_chart" type="button" class="btn-action btn-tool">Grafik</button>
-            <button id="btn_pdf" type="button" class="btn-action btn-tool">PDF</button>
-            <button id="btn_settings" type="button" class="btn-action btn-tool">Ayarlar</button>
+            <button id="btn_yearly" type="button" class="btn-action btn-tool">📅 Yıllık Analiz</button>
+            <button id="btn_chart" type="button" class="btn-action btn-tool">📊 Grafik</button>
+            <button id="btn_pdf" type="button" class="btn-action btn-tool">📄 PDF</button>
+            <button id="btn_settings" type="button" class="btn-action btn-tool">⚙️ Ayarlar</button>
           </div>
         </div>
 
@@ -348,7 +348,7 @@
 
       <button id="btn_add" type="button" class="btn-action"
         style="width:100%; margin-top:10px; background:none; border: 1px dashed var(--accent); color:var(--accent);">
-        Yeni İşlem Ekle
+        ➕ Yeni İşlem Ekle
       </button>
 
       <div class="summary-grid">
@@ -373,7 +373,7 @@
   </div>
 
   <div class="calendar-section">
-    <div style="font-weight:700; font-size:0.9rem; margin-bottom:10px;">Ödeme Takvimi</div>
+    <div style="font-weight:700; font-size:0.9rem; margin-bottom:10px;">📅 Ödeme Takvimi</div>
     <div class="calendar-grid" id="calendar-body"></div>
   </div>
 
@@ -386,9 +386,7 @@
       <div class="chart-wrap">
         <canvas id="budgetChart"></canvas>
       </div>
-      <div class="muted" style="margin-top:10px;">
-        Net değeri negatif ise grafikte 0 olarak gösterilir.
-      </div>
+      <div class="muted" style="margin-top:10px;">Net değeri negatif ise grafikte 0 olarak gösterilir.</div>
     </div>
   </div>
 
@@ -403,7 +401,7 @@
         <div style="color: #991b1b; font-size: 11px; font-weight: 700;">KRİTİK UYARI</div>
         <div style="color: #b91c1c; font-size: 10px;">Aşağıdaki buton tüm aylara ait yerel verileri siler. Bulut yedeği varsa geri gelebilir.</div>
       </div>
-      <button id="btn_reset" class="btn-action btn-danger" type="button" style="width:100%;">Tüm Verileri Sıfırla</button>
+      <button id="btn_reset" class="btn-action btn-danger" type="button" style="width:100%;">🧨 Tüm Verileri Sıfırla</button>
     </div>
   </div>
 
@@ -430,6 +428,9 @@
   const STORAGE_PREFIX = 'butce_';
   const THEME_KEY = 'budget_theme_v1';
 
+  // 15 dk oturum (inactivity timeout)
+  const SESSION_TIMEOUT_MS = 15 * 60 * 1000;
+
   const aylar = ["OCAK","ŞUBAT","MART","NİSAN","MAYIS","HAZİRAN","TEMMUZ","AĞUSTOS","EYLÜL","EKİM","KASIM","ARALIK"];
 
   let accessToken = null;
@@ -439,6 +440,10 @@
 
   let viewDate = new Date();
   let entries = [];
+
+  // Oturum zamanlayıcıları
+  let sessionTimer = null;
+  let sessionActive = false;
 
   const iconMap = [
     { k: 'maaş', v: '💰' }, { k: 'kira', v: '🏠' }, { k: 'market', v: '🛒' }, { k: 'fatura', v: '📄' },
@@ -569,7 +574,6 @@
     elAuthControls.style.display = isAuthed ? 'flex' : 'none';
   }
 
-  // DRIVE DEBUG: gerçek hatayı konsola + toasta basar
   async function driveRequest(url, options = {}) {
     if (!accessToken) throw new Error('NO_TOKEN');
 
@@ -639,7 +643,6 @@
       const k = localStorage.key(i);
       if (k && k.startsWith(STORAGE_PREFIX)) localStorage.removeItem(k);
     }
-
     for (const [k, v] of Object.entries(months)) safeSetItem(k, JSON.stringify(v));
 
     if (driveData && (driveData.theme === 'dark' || driveData.theme === 'light')) {
@@ -654,7 +657,6 @@
     driveFileId = await findAppDataFileIdByName(DRIVE_BACKUP_NAME);
     if (driveFileId) { await syncFromDrive(); return; }
 
-    // IMPORTANT: fields=id ile response'u küçük ve deterministik tut
     const created = await driveRequest('https://www.googleapis.com/drive/v3/files?fields=id', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -689,6 +691,30 @@
     showToast('Bulut eşitlendi', 'info');
   }
 
+  // --- 15 DK OTURUM ---
+  function clearSessionTimer() {
+    if (sessionTimer) { clearTimeout(sessionTimer); sessionTimer = null; }
+  }
+  async function expireSession() {
+    if (!sessionActive) return;
+    sessionActive = false;
+    clearSessionTimer();
+    showToast('Oturum süresi doldu', 'error');
+    await handleLogoutWithPrompt(true);
+  }
+  function armSessionTimer() {
+    clearSessionTimer();
+    sessionTimer = setTimeout(expireSession, SESSION_TIMEOUT_MS);
+  }
+  function touchSession() {
+    if (!sessionActive) return;
+    armSessionTimer();
+  }
+  function bindSessionActivity() {
+    const events = ['click','keydown','mousemove','touchstart','scroll'];
+    events.forEach(ev => window.addEventListener(ev, touchSession, { passive: true }));
+  }
+
   function initTokenClient() {
     tokenClient = google.accounts.oauth2.initTokenClient({
       client_id: CLIENT_ID,
@@ -697,6 +723,9 @@
         if (!res || res.error) { showToast('Giriş hatası', 'error'); return; }
         accessToken = res.access_token;
         setAuthUi(true);
+        sessionActive = true;
+        armSessionTimer();
+
         await fetchUserInfo();
         try {
           await initDriveFile();
@@ -713,10 +742,35 @@
     tokenClient.requestAccessToken();
   }
 
-  function handleLogout() {
-    if (!accessToken) { location.reload(); return; }
-    try { google.accounts.oauth2.revoke(accessToken, () => location.reload()); }
+  async function handleLogoutWithPrompt(isAuto = false) {
+    // isAuto=true => süre doldu; aynı prompt
+    const askText = isAuto
+      ? 'Oturum süresi doldu. Çıkmadan önce buluta kaydedilsin mi?'
+      : 'Güvenli çıkış yapılacak. Çıkmadan önce buluta kaydedilsin mi?';
+
+    let doSave = false;
+    try { doSave = confirm(askText); } catch { doSave = false; }
+
+    if (doSave) {
+      try { await syncToDrive(); }
+      catch (e) { showToast(String(e && e.message ? e.message : e), 'error'); }
+    }
+
+    // revoke + reload
+    const token = accessToken;
+    accessToken = null;
+    driveFileId = null;
+
+    sessionActive = false;
+    clearSessionTimer();
+
+    if (!token) { location.reload(); return; }
+    try { google.accounts.oauth2.revoke(token, () => location.reload()); }
     catch { location.reload(); }
+  }
+
+  async function handleLogout() {
+    await handleLogoutWithPrompt(false);
   }
 
   function loadTheme() {
@@ -1154,6 +1208,7 @@
   function init() {
     loadTheme();
     bindEvents();
+    bindSessionActivity();
     loadData();
     setAuthUi(false);
     initTokenClient();
@@ -1164,4 +1219,3 @@
 </script>
 </body>
 </html>
-
