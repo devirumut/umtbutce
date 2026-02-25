@@ -53,6 +53,7 @@
         
         .entry-row { display: grid; grid-template-columns: 35px 1.5fr 0.7fr 0.6fr 100px 30px; gap: 8px; margin-bottom: 8px; align-items: center; }
         input, select { background: var(--primary); border: 1.5px solid var(--border); padding: 8px; border-radius: 8px; font-size: 12px; color: var(--text-main); outline: none; }
+        input::placeholder { color: var(--text-dim); opacity: 0.5; }
         
         .status-badge { display: flex; align-items: center; justify-content: center; height: 30px; border-radius: 8px; cursor: pointer; font-size: 8px; font-weight: 700; background: var(--primary); border: 1px solid var(--border); }
         .badge-paid { background: #dcfce7 !important; color: #166534 !important; }
@@ -262,7 +263,7 @@
     function loadData() {
         const key = `butce_${aylar[viewDate.getMonth()]}_${viewDate.getFullYear()}`;
         const stored = localStorage.getItem(key);
-        entries = stored ? JSON.parse(stored) : [{ name: 'Maaş', amount: 0, type: 'gelir', status: 'pending', billDay: 1 }];
+        entries = stored ? JSON.parse(stored) : [{ name: '', amount: 0, type: 'gelir', status: 'pending', billDay: 1 }];
         renderInitial();
     }
 
@@ -278,8 +279,8 @@
             
             row.innerHTML = `
                 <div id="icon-box-${index}" style="font-size:18px;">${getIcon(item.name)}</div>
-                <input type="text" value="${item.name}" placeholder="İşlem adı..." oninput="updateItem(${index}, 'name', this.value); document.getElementById('icon-box-${index}').innerText=getIcon(this.value)">
-                <input type="number" value="${item.amount}" oninput="updateItem(${index}, 'amount', this.value)">
+                <input type="text" value="${item.name}" placeholder="Maaş, Kira, Market vb..." oninput="updateItem(${index}, 'name', this.value); document.getElementById('icon-box-${index}').innerText=getIcon(this.value)">
+                <input type="number" value="${item.amount === 0 ? '' : item.amount}" placeholder="0" oninput="updateItem(${index}, 'amount', this.value)">
                 <select onchange="updateItem(${index}, 'type', this.value); renderInitial();">
                     <option value="gelir" ${isG ? 'selected' : ''}>Gelir</option>
                     <option value="gider" ${!isG ? 'selected' : ''}>Gider</option>
@@ -391,16 +392,20 @@
     function changeMonth(s) { viewDate.setMonth(viewDate.getMonth() + s); loadData(); }
     function addRow() { entries.push({ name: '', amount: 0, type: 'gider', status: 'pending', billDay: 1 }); renderInitial(); }
     
-    // GÜNCELLENEN SİLME FONKSİYONU
+    // GÜNCELLENEN AKICI SİLME FONKSİYONU
     function removeRow(i) {
         if (entries.length > 1) {
             entries.splice(i, 1);
         } else {
             entries[0] = { name: '', amount: 0, type: 'gider', status: 'pending', billDay: 1 };
-            showToast("Son satır sıfırlandı", "info");
+            showToast("Liste temizlendi", "info");
         }
-        updateItem(0, '', '');
+        
+        const key = `butce_${aylar[viewDate.getMonth()]}_${viewDate.getFullYear()}`;
+        localStorage.setItem(key, JSON.stringify(entries));
+        
         renderInitial();
+        calculate();
     }
 
     function toggleStatus(i) { entries[i].status = entries[i].status === 'paid' ? 'pending' : 'paid'; updateItem(i, 'status', entries[i].status); renderInitial(); }
