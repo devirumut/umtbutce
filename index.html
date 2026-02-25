@@ -5,7 +5,6 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Bütçe Planlama Uygulaması V5.2 (Single File)</title>
 
-  <!-- Static nonce (single-file). For real deployments, generate per-request on server. -->
   <meta http-equiv="Content-Security-Policy" content="
     default-src 'self';
     script-src 'self' 'nonce-umtdvr_v52' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://accounts.google.com;
@@ -25,7 +24,6 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 
-  <!-- External libs (allowed by CSP) -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js" defer></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js" defer></script>
   <script src="https://accounts.google.com/gsi/client" async defer></script>
@@ -49,7 +47,6 @@
       margin:0; padding:10px; transition:.2s;
       display:flex; flex-direction:column; align-items:center; min-height:100vh;
     }
-
     .hidden{ display:none !important; }
 
     .app-header{
@@ -164,12 +161,10 @@
       gap:8px; align-items:center; margin-bottom:8px;
     }
 
-    /* FIX: emoji ikonlar görünür */
     .icon-box{
       width:34px; height:32px; display:flex; align-items:center; justify-content:center;
       border:1px solid var(--border); border-radius:10px; background:var(--primary);
-      font-size:16px; user-select:none;
-      line-height:1;
+      font-size:16px; user-select:none; line-height:1;
     }
 
     .badge{
@@ -241,8 +236,11 @@
     .t-info{ background:#4f46e5; } .t-ok{ background:#10b981; } .t-err{ background:#ef4444; }
 
     .tabs{ display:flex; gap:8px; flex-wrap:wrap; margin-top:8px; }
-    .tab{ padding:8px 10px; border-radius:999px; border:1px solid var(--border); background:var(--header-bg);
-      font-size:11px; font-weight:900; cursor:pointer; }
+    .tab{
+      padding:8px 10px; border-radius:999px; border:1px solid var(--border); background:var(--header-bg);
+      font-size:11px; font-weight:900; cursor:pointer; user-select:none;
+      display:inline-flex; align-items:center; gap:6px;
+    }
     .tab.active{ background:var(--accent); color:#fff; border-color:transparent; }
     .tabpane{ display:none; margin-top:10px; }
     .tabpane.active{ display:block; }
@@ -288,11 +286,11 @@
           <span id="session_countdown">15:00</span>
           <span id="session_state" class="chip-state">ACTIVE</span>
         </span>
-        <button id="btn_backup" class="btn btn-green" type="button">Yedekle</button>
-        <button id="btn_logout" class="btn btn-gray" type="button">Çıkış</button>
+        <button id="btn_backup" class="btn btn-green" type="button">🟢 Yedekle</button>
+        <button id="btn_logout" class="btn btn-gray" type="button">⏻ Çıkış</button>
       </div>
 
-      <button id="btn_theme" type="button" class="btn btn-tool">Tema</button>
+      <button id="btn_theme" type="button" class="btn btn-tool">🌗 Tema</button>
     </div>
   </div>
 
@@ -336,17 +334,17 @@
       <div class="sticky-controls">
         <div class="top-row">
           <div class="month-nav">
-            <button id="btn_prev" type="button" class="btn">Geri</button>
+            <button id="btn_prev" type="button" class="btn">← Geri</button>
             <span id="display-month" class="display-month"></span>
-            <button id="btn_next" type="button" class="btn">İleri</button>
+            <button id="btn_next" type="button" class="btn">İleri →</button>
           </div>
 
           <div class="toolbar">
-            <button id="btn_search" type="button" class="btn btn-tool" title="Ara / Filtre">Ara</button>
-            <button id="btn_yearly" type="button" class="btn btn-tool">Yıllık</button>
-            <button id="btn_chart" type="button" class="btn btn-tool">Analiz</button>
-            <button id="btn_pdf" type="button" class="btn btn-tool">PDF</button>
-            <button id="btn_settings" type="button" class="btn btn-tool">Ayarlar</button>
+            <button id="btn_search" type="button" class="btn btn-tool" title="Ara / Filtre">🔎 Ara</button>
+            <button id="btn_yearly" type="button" class="btn btn-tool">📅 Yıllık</button>
+            <button id="btn_chart" type="button" class="btn btn-tool">📊 Analiz</button>
+            <button id="btn_pdf" type="button" class="btn btn-tool">🧾 PDF</button>
+            <button id="btn_settings" type="button" class="btn btn-tool">⚙️ Ayarlar</button>
           </div>
         </div>
 
@@ -355,7 +353,7 @@
 
         <div class="quick-add">
           <input id="quick_input" placeholder="Hızlı ekle: örn 'kira 8500 5 gider' / 'maaş 45000 1 gelir'">
-          <button id="btn_quick_add" class="btn" type="button">Hızlı Ekle</button>
+          <button id="btn_quick_add" class="btn" type="button">➕ Hızlı Ekle</button>
         </div>
 
         <div id="search_panel" class="control-bar hidden">
@@ -389,7 +387,7 @@
       </div>
       <div id="entries-container"></div>
 
-      <button id="btn_add" type="button" class="btn btn-add-row">Yeni İşlem</button>
+      <button id="btn_add" type="button" class="btn btn-add-row">➕ Yeni İşlem</button>
 
       <div class="summary-grid">
         <div class="stat"><small>GELİR (ALINAN)</small><div class="val val-inc" id="t-inc">0 TL</div></div>
@@ -402,7 +400,7 @@
   </div>
 
   <div class="calendar-section">
-    <div class="calendar-title">Ödeme Takvimi</div>
+    <div class="calendar-title">📆 Ödeme Takvimi</div>
     <div class="calendar-grid" id="calendar-body"></div>
   </div>
 
@@ -412,12 +410,12 @@
   <div id="chartModal" class="modal-overlay hidden">
     <div class="modal">
       <button class="closex" type="button" data-close="chartModal">×</button>
-      <h3 style="margin:0 0 6px 0;">Analiz</h3>
+      <h3 style="margin:0 0 6px 0;">📊 Analiz</h3>
 
       <div class="tabs">
-        <div class="tab active" data-tab="tab-month">Aylık Dağılım</div>
-        <div class="tab" data-tab="tab-trend">Trend (12 Ay)</div>
-        <div class="tab" data-tab="tab-cats">Kategori</div>
+        <div class="tab active" data-tab="tab-month">🧮 Aylık Dağılım</div>
+        <div class="tab" data-tab="tab-trend">📈 Trend (12 Ay)</div>
+        <div class="tab" data-tab="tab-cats">🧾 Kategori</div>
       </div>
 
       <div class="tabpane active" id="tab-month">
@@ -432,7 +430,7 @@
 
       <div class="tabpane" id="tab-cats">
         <div class="chart-wrap"><canvas id="chart_cat"></canvas></div>
-        <div class="muted-inline">Sadece giderler kategori bazlı gösterilir (paid + pending).</div>
+        <div class="muted-inline">Sadece giderler kategori bazlı gösterilir (paid + pending + overdue).</div>
       </div>
     </div>
   </div>
@@ -441,12 +439,12 @@
   <div id="settingsModal" class="modal-overlay hidden">
     <div class="modal">
       <button class="closex" type="button" data-close="settingsModal">×</button>
-      <h3 style="margin:0 0 10px 0;">Ayarlar</h3>
+      <h3 style="margin:0 0 10px 0;">⚙️ Ayarlar</h3>
 
       <div class="settings-top">
-        <button id="btn_undo" class="btn btn-tool" type="button">Geri Al</button>
-        <button id="btn_notify" class="btn btn-tool" type="button">Bildirim İzni</button>
-        <button id="btn_sync" class="btn btn-tool" type="button">Buluttan Çek</button>
+        <button id="btn_undo" class="btn btn-tool" type="button">↩️ Geri Al</button>
+        <button id="btn_notify" class="btn btn-tool" type="button">🔔 Bildirim İzni</button>
+        <button id="btn_sync" class="btn btn-tool" type="button">☁️ Buluttan Çek</button>
       </div>
 
       <hr class="hr">
@@ -454,7 +452,7 @@
       <div class="section-label">KATEGORİLER</div>
       <div class="cat-add">
         <input id="cat_input" placeholder="Yeni kategori adı">
-        <button id="btn_add_cat" class="btn" type="button">Ekle</button>
+        <button id="btn_add_cat" class="btn" type="button">➕ Ekle</button>
       </div>
       <div id="cat_list" class="cat-list"></div>
 
@@ -463,7 +461,7 @@
       <div class="critical">
         <div class="critical-title">KRİTİK</div>
         <div class="critical-desc">Yerel verileri sıfırlar. Bulut yedeği varsa geri alınabilir.</div>
-        <button id="btn_reset" class="btn btn-danger critical-btn" type="button">Yerel Verileri Sıfırla</button>
+        <button id="btn_reset" class="btn btn-danger critical-btn" type="button">🗑️ Yerel Verileri Sıfırla</button>
       </div>
     </div>
   </div>
@@ -472,7 +470,7 @@
   <div id="yearlyModal" class="modal-overlay hidden">
     <div class="modal">
       <button class="closex" type="button" data-close="yearlyModal">×</button>
-      <h3 id="yearly-title" style="margin:0 0 10px 0;">Yıllık Özet</h3>
+      <h3 id="yearly-title" style="margin:0 0 10px 0;">📅 Yıllık Özet</h3>
       <div id="yearly-content"></div>
     </div>
   </div>
@@ -517,7 +515,11 @@
       let autoBackupTimer = null;
       const AUTO_BACKUP_DEBOUNCE_MS = 30000;
 
-      /* FIX: emoji iconMap + default emoji */
+      // ANALIZ CHART INSTANCES
+      let chartMonth = null;
+      let chartTrend = null;
+      let chartCat = null;
+
       const iconMap = [
         { k:'maaş', v:'💰' }, { k:'kira', v:'🏠' }, { k:'market', v:'🛒' }, { k:'fatura', v:'📄' },
         { k:'elektrik', v:'⚡' }, { k:'su', v:'💧' }, { k:'doğalgaz', v:'🔥' }, { k:'internet', v:'🌐' },
@@ -566,6 +568,7 @@
         const next = cur === 'dark' ? 'light' : 'dark';
         applyTheme(next);
         safeSetItem(THEME_KEY, next);
+        // chart colors default; no need to touch
       }
 
       function daysInMonth(year, monthIndex0){ return new Date(year, monthIndex0 + 1, 0).getDate(); }
@@ -881,6 +884,7 @@
             icon.textContent = getIcon(entries[idx].name);
             saveData();
             renderCalendar();
+            refreshChartsIfOpen();
           });
 
           const inAmount = document.createElement('input');
@@ -892,6 +896,7 @@
             entries[idx].amount = amt.value;
             saveData();
             renderSummary();
+            refreshChartsIfOpen();
           });
 
           const selType = document.createElement('select');
@@ -908,6 +913,7 @@
             undoPush({ type:'update', payload:{ id:e.id, before, after:{...entries[idx]} }});
             saveData();
             renderAll();
+            refreshChartsIfOpen();
           });
 
           const selCat = document.createElement('select');
@@ -924,6 +930,7 @@
             undoPush({ type:'update', payload:{ id:e.id, before, after:{...entries[idx]} }});
             saveData();
             renderAll();
+            refreshChartsIfOpen();
           });
 
           const inDay = document.createElement('input');
@@ -939,6 +946,7 @@
             renderCalendar();
             markOverdueForViewedMonth();
             renderRows();
+            refreshChartsIfOpen();
           });
 
           const selRepeat = document.createElement('select');
@@ -953,6 +961,7 @@
             entries[idx].repeat = ev.target.value === 'monthly' ? 'monthly' : 'none';
             undoPush({ type:'update', payload:{ id:e.id, before, after:{...entries[idx]} }});
             saveData();
+            refreshChartsIfOpen();
           });
 
           const badge = document.createElement('div');
@@ -965,6 +974,7 @@
             saveData();
             markOverdueForViewedMonth();
             renderAll();
+            refreshChartsIfOpen();
           });
 
           const del = document.createElement('button');
@@ -978,6 +988,7 @@
             if (entries.length === 0) entries = [normalizeEntry({ name:'', amount:0, type:'gider', status:'pending', billDay:1, category:'Genel' }, y, m)];
             saveData();
             renderAll();
+            refreshChartsIfOpen();
             toast('İşlem silindi', 'info');
           });
 
@@ -1050,6 +1061,7 @@
           entries.splice(Math.min(Math.max(index,0), entries.length), 0, normalizeEntry(entry, y, m));
           saveData();
           renderAll();
+          refreshChartsIfOpen();
           toast('Geri alındı', 'ok');
           return;
         }
@@ -1061,6 +1073,7 @@
             entries[idx] = normalizeEntry(before, y, m);
             saveData();
             renderAll();
+            refreshChartsIfOpen();
             toast('Geri alındı', 'ok');
           }
         }
@@ -1125,6 +1138,7 @@
         entries.push(ne);
         saveData();
         renderAll();
+        refreshChartsIfOpen();
         toast('Eklendi', 'ok');
       }
 
@@ -1367,6 +1381,7 @@
       function changeMonth(delta) {
         viewDate.setMonth(viewDate.getMonth() + delta);
         loadData();
+        refreshChartsIfOpen();
       }
 
       function addBlankRow() {
@@ -1375,6 +1390,7 @@
         entries.push(normalizeEntry({ name:'', amount:0, type:'gider', status:'pending', billDay:1, category:'Genel', repeat:'none' }, y, m));
         saveData();
         renderAll();
+        refreshChartsIfOpen();
       }
 
       function buildYearlyTable(year) {
@@ -1446,6 +1462,171 @@
         return table;
       }
 
+      // FIX: TAB SWITCHING (Analiz isimleri/tabs çalışmıyordu)
+      function bindChartTabs() {
+        document.querySelectorAll('#chartModal .tab').forEach(tab => {
+          tab.addEventListener('click', () => {
+            const target = tab.getAttribute('data-tab');
+            document.querySelectorAll('#chartModal .tab').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('#chartModal .tabpane').forEach(p => p.classList.remove('active'));
+            tab.classList.add('active');
+            const pane = document.getElementById(target);
+            if (pane) pane.classList.add('active');
+            setTimeout(() => { renderCharts(); }, 0);
+          });
+        });
+      }
+
+      function destroyCharts() {
+        try { if (chartMonth) chartMonth.destroy(); } catch {}
+        try { if (chartTrend) chartTrend.destroy(); } catch {}
+        try { if (chartCat) chartCat.destroy(); } catch {}
+        chartMonth = chartTrend = chartCat = null;
+      }
+
+      function isChartModalOpen() {
+        const el = $('chartModal');
+        return el && !el.classList.contains('hidden');
+      }
+
+      function refreshChartsIfOpen() {
+        if (isChartModalOpen()) renderCharts();
+      }
+
+      function monthLabel(year, mi){ return `${aylar[mi]} ${year}`; }
+
+      function buildCategoryTotalsForMonth(list, year, monthIndex0) {
+        const map = new Map();
+        for (const e0 of list) {
+          const e = normalizeEntry(e0, year, monthIndex0);
+          if (e.type !== 'gider') continue;
+          const amt = e.amount || 0;
+          if (amt <= 0) continue;
+          const key = e.category || 'Genel';
+          map.set(key, (map.get(key) || 0) + amt);
+        }
+        const arr = Array.from(map.entries()).sort((a,b)=>b[1]-a[1]);
+        return {
+          labels: arr.map(x=>x[0]),
+          values: arr.map(x=>Math.round(x[1]*100)/100)
+        };
+      }
+
+      // FIX: ANALIZ GRAFIKLERI (boş kalıyordu)
+      function renderCharts() {
+        if (typeof Chart === 'undefined') return;
+
+        const y = viewDate.getFullYear();
+        const m = viewDate.getMonth();
+        const st = calculateMonth(entries, y, m);
+
+        const incForecast = st.incPaid + st.incPending;
+        const outForecast = st.expPaid + st.expPending + st.expOver;
+        const net = st.netForecast;
+
+        // Month (bar): gelir, gider, net(negatifse 0)
+        const ctxM = $('chart_month')?.getContext?.('2d');
+        if (ctxM) {
+          try { if (chartMonth) chartMonth.destroy(); } catch {}
+          chartMonth = new Chart(ctxM, {
+            type: 'bar',
+            data: {
+              labels: ['Gelir (tahmini)', 'Gider (tahmini)', 'Net (min 0)'],
+              datasets: [{
+                label: `${aylar[m]} ${y}`,
+                data: [incForecast, outForecast, Math.max(0, net)]
+              }]
+            },
+            options: {
+              responsive: true,
+              maintainAspectRatio: false,
+              plugins: { legend: { display: false } },
+              scales: {
+                y: { beginAtZero: true, ticks: { callback: (v)=> `${Number(v).toLocaleString()} TL` } }
+              }
+            }
+          });
+        }
+
+        // Trend (line): last 12 months including current
+        const ctxT = $('chart_trend')?.getContext?.('2d');
+        if (ctxT) {
+          try { if (chartTrend) chartTrend.destroy(); } catch {}
+
+          const labels = [];
+          const incomeReal = [];
+          const incomeForecast = [];
+          const expenseReal = [];
+          const expenseForecast = [];
+          const netForecastArr = [];
+
+          const start = new Date(y, m, 1);
+          start.setMonth(start.getMonth() - 11);
+
+          for (let i=0; i<12; i++) {
+            const d = new Date(start.getFullYear(), start.getMonth() + i, 1);
+            const yy = d.getFullYear();
+            const mm = d.getMonth();
+            const data = safeLoadMonth(yy, mm);
+            const s = calculateMonth(data, yy, mm);
+
+            const incF = s.incPaid + s.incPending;
+            const outF = s.expPaid + s.expPending + s.expOver;
+
+            labels.push(monthLabel(yy, mm));
+            incomeReal.push(s.incPaid);
+            incomeForecast.push(incF);
+            expenseReal.push(s.expPaid);
+            expenseForecast.push(outF);
+            netForecastArr.push(incF - outF);
+          }
+
+          chartTrend = new Chart(ctxT, {
+            type: 'line',
+            data: {
+              labels,
+              datasets: [
+                { label: 'Gelir (gerçekleşen)', data: incomeReal, tension: 0.25 },
+                { label: 'Gelir (tahmini)', data: incomeForecast, tension: 0.25 },
+                { label: 'Gider (gerçekleşen)', data: expenseReal, tension: 0.25 },
+                { label: 'Gider (tahmini)', data: expenseForecast, tension: 0.25 },
+                { label: 'Net (tahmini)', data: netForecastArr, tension: 0.25 }
+              ]
+            },
+            options: {
+              responsive: true,
+              maintainAspectRatio: false,
+              plugins: { legend: { position: 'bottom' } },
+              scales: {
+                y: { ticks: { callback: (v)=> `${Number(v).toLocaleString()} TL` } }
+              }
+            }
+          });
+        }
+
+        // Category (pie): giderler (paid+pending+overdue)
+        const ctxC = $('chart_cat')?.getContext?.('2d');
+        if (ctxC) {
+          try { if (chartCat) chartCat.destroy(); } catch {}
+
+          const cat = buildCategoryTotalsForMonth(entries, y, m);
+          chartCat = new Chart(ctxC, {
+            type: 'pie',
+            data: {
+              labels: cat.labels.length ? cat.labels : ['(Veri yok)'],
+              datasets: [{
+                data: cat.labels.length ? cat.values : [1]
+              }]
+            },
+            options: {
+              responsive: true,
+              maintainAspectRatio: false,
+              plugins: { legend: { position: 'bottom' } }
+            }
+          });
+        }
+      }
+
       function bindEvents() {
         $('auth_btn').addEventListener('click', handleAuthClick);
         $('btn_backup').addEventListener('click', async () => { try { await syncToDrive(false); } catch (e) { toast(String(e?.message||e), 'err'); }});
@@ -1459,7 +1640,7 @@
 
         $('btn_yearly').addEventListener('click', () => {
           const year = viewDate.getFullYear();
-          $('yearly-title').textContent = `${year} Yıllık Özet`;
+          $('yearly-title').textContent = `📅 ${year} Yıllık Özet`;
           const host = $('yearly-content');
           host.textContent = '';
           host.appendChild(buildYearlyTable(year));
@@ -1468,7 +1649,8 @@
 
         $('btn_chart').addEventListener('click', () => {
           showModal('chartModal');
-          toast('Grafikler modala hazır.', 'info');
+          // chartlar ilk açılışta çizilsin
+          setTimeout(() => { renderCharts(); }, 0);
         });
 
         $('btn_pdf').addEventListener('click', () => {
@@ -1494,14 +1676,25 @@
           $(id).addEventListener('change', renderAll);
         });
 
-        document.querySelectorAll('[data-close]').forEach(btn => btn.addEventListener('click', () => closeModal(btn.getAttribute('data-close'))));
-        ['chartModal','settingsModal','yearlyModal'].forEach(id => $(id).addEventListener('click', (e) => { if (e.target && e.target.id === id) closeModal(id); }));
+        document.querySelectorAll('[data-close]').forEach(btn => btn.addEventListener('click', () => {
+          const id = btn.getAttribute('data-close');
+          closeModal(id);
+          if (id === 'chartModal') destroyCharts();
+        }));
+
+        ['chartModal','settingsModal','yearlyModal'].forEach(id => $(id).addEventListener('click', (e) => {
+          if (e.target && e.target.id === id) {
+            closeModal(id);
+            if (id === 'chartModal') destroyCharts();
+          }
+        }));
 
         $('btn_reset').addEventListener('click', () => {
           const c1 = confirm('Yerel veriler silinecek. Emin misiniz?'); if (!c1) return;
           const c2 = confirm('Son onay. Silinsin mi?'); if (!c2) return;
           for (let i=localStorage.length-1; i>=0; i--) { const k = localStorage.key(i); if (k && k.startsWith(STORAGE_PREFIX)) localStorage.removeItem(k); }
           loadData();
+          refreshChartsIfOpen();
           toast('Yerel veriler sıfırlandı', 'info');
         });
 
@@ -1516,6 +1709,7 @@
           renderFilters();
           renderCategoryChips();
           renderAll();
+          refreshChartsIfOpen();
           toast('Kategori eklendi', 'ok');
         });
         $('cat_input').addEventListener('keydown', (e) => { if (e.key === 'Enter') $('btn_add_cat').click(); });
@@ -1529,7 +1723,7 @@
 
         $('btn_sync').addEventListener('click', async () => {
           if (!accessToken || !driveFileId) { toast('Önce Google ile bağlan', 'err'); return; }
-          try { await syncFromDrive(); } catch (e) { toast(String(e?.message||e), 'err'); }
+          try { await syncFromDrive(); refreshChartsIfOpen(); } catch (e) { toast(String(e?.message||e), 'err'); }
         });
       }
 
@@ -1538,6 +1732,7 @@
         loadCategories();
         bindEvents();
         bindSessionActivity();
+        bindChartTabs();
 
         setAuthUi(false);
         setCountdownVisible(false);
