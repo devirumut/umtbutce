@@ -278,14 +278,14 @@
             
             row.innerHTML = `
                 <div id="icon-box-${index}" style="font-size:18px;">${getIcon(item.name)}</div>
-                <input type="text" value="${item.name}" oninput="updateItem(${index}, 'name', this.value); document.getElementById('icon-box-${index}').innerText=getIcon(this.value)">
+                <input type="text" value="${item.name}" placeholder="İşlem adı..." oninput="updateItem(${index}, 'name', this.value); document.getElementById('icon-box-${index}').innerText=getIcon(this.value)">
                 <input type="number" value="${item.amount}" oninput="updateItem(${index}, 'amount', this.value)">
                 <select onchange="updateItem(${index}, 'type', this.value); renderInitial();">
                     <option value="gelir" ${isG ? 'selected' : ''}>Gelir</option>
                     <option value="gider" ${!isG ? 'selected' : ''}>Gider</option>
                 </select>
                 <div class="status-badge ${sC}" onclick="toggleStatus(${index})">${sL}</div>
-                <button style="border:none; background:none; color:var(--text-dim); cursor:pointer;" onclick="removeRow(${index})">×</button>`;
+                <button style="border:none; background:none; color:var(--text-dim); cursor:pointer; font-size:18px;" onclick="removeRow(${index})">×</button>`;
             container.appendChild(row);
         });
         calculate(); renderCalendar();
@@ -390,7 +390,19 @@
     function closeModal(id) { document.getElementById(id).style.display = 'none'; }
     function changeMonth(s) { viewDate.setMonth(viewDate.getMonth() + s); loadData(); }
     function addRow() { entries.push({ name: '', amount: 0, type: 'gider', status: 'pending', billDay: 1 }); renderInitial(); }
-    function removeRow(i) { entries.splice(i, 1); updateItem(0,'',''); renderInitial(); }
+    
+    // GÜNCELLENEN SİLME FONKSİYONU
+    function removeRow(i) {
+        if (entries.length > 1) {
+            entries.splice(i, 1);
+        } else {
+            entries[0] = { name: '', amount: 0, type: 'gider', status: 'pending', billDay: 1 };
+            showToast("Son satır sıfırlandı", "info");
+        }
+        updateItem(0, '', '');
+        renderInitial();
+    }
+
     function toggleStatus(i) { entries[i].status = entries[i].status === 'paid' ? 'pending' : 'paid'; updateItem(i, 'status', entries[i].status); renderInitial(); }
     function toggleTheme() { const t = document.body.getAttribute('data-theme') === 'dark' ? 'light' : 'dark'; document.body.setAttribute('data-theme', t); }
 
