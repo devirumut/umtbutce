@@ -1,255 +1,1110 @@
-<!DOCTYPE html>
-<html lang="tr">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Bütçe Planlama Uygulaması V5.2</title>
+(() => {
+  'use strict';
 
-  <meta http-equiv="Content-Security-Policy" content="
-    default-src 'self';
-    script-src 'self' https://accounts.google.com;
-    style-src 'self' https://fonts.googleapis.com;
-    font-src https://fonts.gstatic.com;
-    img-src 'self' data: https://www.gstatic.com https://lh3.googleusercontent.com;
-    connect-src 'self' https://www.googleapis.com https://oauth2.googleapis.com;
-    frame-src https://www.altinkaynak.com;
-    base-uri 'self';
-    form-action 'self';
-    object-src 'none';
-    frame-ancestors 'none';
-    upgrade-insecure-requests;
-  " />
+  // ---------------- CONFIG ----------------
+  const CLIENT_ID = '874591165323-ktdp2ojebh4225v0335lvuk3pct8eraq.apps.googleusercontent.com';
+  const SCOPES = [
+    'https://www.googleapis.com/auth/drive.appdata',
+    'https://www.googleapis.com/auth/userinfo.email',
+    'https://www.googleapis.com/auth/userinfo.profile'
+  ].join(' ');
 
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  const DRIVE_BACKUP_NAME = 'budget_appdata_v2.json';
+  const STORAGE_PREFIX = 'butce_';
+  const THEME_KEY = 'budget_theme_v1';
+  const CAT_KEY = 'budget_categories_v1';
+  const NOTIFY_KEY = 'budget_notify_enabled_v1';
 
-  <!-- SELF-HOSTED vendor libs -->
-  <script src="assets/vendor/chart.umd.min.js" defer></script>
-  <script src="assets/vendor/html2pdf.bundle.min.js" defer></script>
+  const SESSION_TIMEOUT_MS = 15 * 60 * 1000;
+  const MOUSE_RESET_THROTTLE_MS = 5000;
 
-  <!-- Google Identity Services -->
-  <script src="https://accounts.google.com/gsi/client" async defer></script>
+  const aylar = ["OCAK","ŞUBAT","MART","NİSAN","MAYIS","HAZİRAN","TEMMUZ","AĞUSTOS","EYLÜL","EKİM","KASIM","ARALIK"];
 
-  <link rel="stylesheet" href="assets/app.css" />
-  <script src="assets/app.js" defer></script>
-</head>
+  // ---------------- STATE ----------------
+  let accessToken = null;
+  let tokenClient = null;
+  let driveFileId = null;
 
-<body>
-  <div class="app-header">
-    <div class="header-left">
-      <h1 class="app-title">
-        Bütçe Planlama <span class="app-ver">V5.2</span>
-      </h1>
-      <div id="user-info" class="user-info" style="display:none;">
-        <img id="user-img" alt="user" src="" class="user-img">
-        <span id="user-email" class="user-email"></span>
-      </div>
-    </div>
+  let viewDate = new Date();
+  let entries = [];
+  let categories = [];
+  let undoStack = []; // {type, payload}
 
-    <div class="header-right">
-      <button id="auth_btn" class="google-btn" type="button">
-        <img src="https://www.gstatic.com/images/branding/product/1x/gsa_512dp.png" alt="Google"> Google ile Bağlan
-      </button>
+  // session + countdown
+  let sessionTimer = null;
+  let countdownTimer = null;
+  let sessionActive = false;
+  let sessionExpireAt = 0;
+  let lastMouseResetAt = 0;
 
-      <div id="auth_controls" class="auth-controls" style="display:none;">
-        <span id="session_badge" class="chip" style="display:none;">
-          <span class="chip-dot">.</span>
-          <span id="session_countdown">15:00</span>
-          <span id="session_state" class="chip-state">ACTIVE</span>
-        </span>
-        <button id="btn_backup" class="btn btn-green" type="button">Yedekle</button>
-        <button id="btn_logout" class="btn btn-gray" type="button">Çıkış</button>
-      </div>
+  // charts
+  let chartMonth = null, chartTrend = null, chartCat = null;
 
-      <button id="btn_theme" type="button" class="btn btn-tool">Tema</button>
-    </div>
-  </div>
+  // auto backup debounce
+  let autoBackupTimer = null;
+  const AUTO_BACKUP_DEBOUNCE_MS = 30000;
 
-  <div class="main-layout">
-    <div class="left-panel">
-      <div class="widget-card">
-        <div class="widget-header">24 AYAR GRAM</div>
-        <div class="crop-box">
-          <iframe
-            src="https://www.altinkaynak.com/canli-kurlar/altin"
-            id="frame-gram"
-            loading="lazy"
-            referrerpolicy="no-referrer"
-            sandbox="allow-scripts allow-same-origin"></iframe>
-        </div>
-      </div>
+  // Icon policy: no emoji. Use short tags.
+  const iconMap = [
+    { k:'maaş', v:'MS' }, { k:'kira', v:'KR' }, { k:'market', v:'MK' }, { k:'fatura', v:'FT' },
+    { k:'elektrik', v:'EL' }, { k:'su', v:'SU' }, { k:'doğalgaz', v:'DG' }, { k:'internet', v:'IN' },
+    { k:'telefon', v:'TL' }, { k:'akaryakıt', v:'AK' }, { k:'araba', v:'AR' }, { k:'altın', v:'AU' },
+    { k:'kredi', v:'KD' }, { k:'yemek', v:'YM' }
+  ];
+  function getIcon(name) {
+    const n = String(name || '').toLowerCase();
+    for (const it of iconMap) if (n.includes(it.k)) return it.v;
+    return '--';
+  }
 
-      <div class="widget-card">
-        <div class="widget-header">ÇEYREK ALTIN</div>
-        <div class="crop-box">
-          <iframe
-            src="https://www.altinkaynak.com/canli-kurlar/altin"
-            id="frame-ceyrek"
-            loading="lazy"
-            referrerpolicy="no-referrer"
-            sandbox="allow-scripts allow-same-origin"></iframe>
-        </div>
-      </div>
+  const $ = (id) => document.getElementById(id);
 
-      <div class="widget-card">
-        <div class="widget-header">DOLAR & EURO</div>
-        <div class="crop-box currency-box">
-          <iframe
-            src="https://www.altinkaynak.com/canli-kurlar/doviz"
-            id="frame-doviz"
-            loading="lazy"
-            referrerpolicy="no-referrer"
-            sandbox="allow-scripts allow-same-origin"></iframe>
-        </div>
-      </div>
-    </div>
+  // ---------------- UI HELPERS ----------------
+  function toast(message, type='info') {
+    const t = document.createElement('div');
+    t.className = `toast ${type==='ok'?'t-ok':type==='err'?'t-err':'t-info'}`;
+    t.textContent = String(message || '');
+    document.body.appendChild(t);
+    setTimeout(()=>t.classList.add('show'), 50);
+    setTimeout(()=>{
+      t.classList.remove('show');
+      setTimeout(()=>t.remove(), 300);
+    }, 2600);
+  }
 
-    <div class="budget-card">
-      <div class="sticky-controls">
-        <div class="top-row">
-          <div class="month-nav">
-            <button id="btn_prev" type="button" class="btn">Prev</button>
-            <span id="display-month" class="display-month"></span>
-            <button id="btn_next" type="button" class="btn">Next</button>
-          </div>
+  function showModal(id){ $(id).style.display='flex'; }
+  function closeModal(id){ $(id).style.display='none'; }
 
-          <div class="toolbar">
-            <button id="btn_search" type="button" class="btn btn-tool" title="Ara / Filtre">Ara</button>
-            <button id="btn_yearly" type="button" class="btn btn-tool">Yıllık</button>
-            <button id="btn_chart" type="button" class="btn btn-tool">Analiz</button>
-            <button id="btn_pdf" type="button" class="btn btn-tool">PDF</button>
-            <button id="btn_settings" type="button" class="btn btn-tool">Ayarlar</button>
-          </div>
-        </div>
+  function safeJsonParse(raw, fallback) {
+    try { return JSON.parse(raw); } catch { return fallback; }
+  }
+  function safeSetItem(key, value) {
+    try { localStorage.setItem(key, value); return true; } catch { toast('Depolama hatası', 'err'); return false; }
+  }
 
-        <div class="muted" id="progress-text">HARCAMA ORANI: %0</div>
-        <div class="progress-wrap"><div id="progress-fill" class="progress-fill"></div></div>
+  function applyTheme(theme) {
+    document.body.setAttribute('data-theme', theme === 'dark' ? 'dark' : 'light');
+  }
+  function loadTheme() {
+    const t = localStorage.getItem(THEME_KEY);
+    applyTheme(t === 'dark' ? 'dark' : 'light');
+  }
+  function toggleTheme() {
+    const cur = document.body.getAttribute('data-theme') === 'dark' ? 'dark' : 'light';
+    const next = cur === 'dark' ? 'light' : 'dark';
+    applyTheme(next);
+    safeSetItem(THEME_KEY, next);
+  }
 
-        <div class="quick-add">
-          <input id="quick_input" placeholder="Hızlı ekle: 'kira 8500 5 gider' / 'maaş 45000 1 gelir'">
-          <button id="btn_quick_add" class="btn" type="button">Hızlı Ekle</button>
-        </div>
+  // ---------------- DATA MODEL ----------------
+  function daysInMonth(year, monthIndex0){ return new Date(year, monthIndex0 + 1, 0).getDate(); }
+  function storageKeyFor(dateObj){ return `${STORAGE_PREFIX}${aylar[dateObj.getMonth()]}_${dateObj.getFullYear()}`; }
 
-        <div id="search_panel" class="control-bar" style="display:none;">
-          <input id="f_search" placeholder="Ara (isim/etiket)">
-          <select id="f_type">
-            <option value="all">Tür: Hepsi</option>
-            <option value="gelir">Tür: Gelir</option>
-            <option value="gider">Tür: Gider</option>
-          </select>
-          <select id="f_status">
-            <option value="all">Durum: Hepsi</option>
-            <option value="paid">Durum: Ödendi/Alındı</option>
-            <option value="pending">Durum: Bekliyor</option>
-            <option value="overdue">Durum: Gecikti</option>
-          </select>
-          <select id="f_cat">
-            <option value="all">Kategori: Hepsi</option>
-          </select>
-          <select id="f_sort">
-            <option value="day_asc">Sırala: Gün ↑</option>
-            <option value="day_desc">Sırala: Gün ↓</option>
-            <option value="amt_desc">Sırala: Tutar ↓</option>
-            <option value="amt_asc">Sırala: Tutar ↑</option>
-            <option value="name_asc">Sırala: İsim A-Z</option>
-          </select>
-        </div>
-      </div>
+  function parseMoney(raw) {
+    const s = String(raw ?? '').trim().replace(',', '.');
+    const n = Number(s);
+    if (!Number.isFinite(n) || n < 0) return { ok:false, value:0 };
+    return { ok:true, value: Math.round(n * 100) / 100 };
+  }
 
-      <div class="entry-head">
-        <div></div><div>İşlem</div><div>Tutar</div><div>Tür</div><div>Kategori</div><div>Gün</div><div>Tekrar</div><div>Durum</div><div></div>
-      </div>
-      <div id="entries-container"></div>
+  function normalizeBillDay(raw, year, monthIndex0) {
+    const d = Number.parseInt(String(raw ?? ''), 10);
+    const max = daysInMonth(year, monthIndex0);
+    if (!Number.isFinite(d)) return 1;
+    return Math.min(Math.max(d, 1), max);
+  }
 
-      <button id="btn_add" type="button" class="btn btn-add-row">
-        Yeni İşlem
-      </button>
+  // statuses: paid | pending | overdue
+  // repeat: none | monthly
+  function normalizeEntry(e0, year, monthIndex0) {
+    const e = e0 && typeof e0 === 'object' ? e0 : {};
+    const type = e.type === 'gelir' ? 'gelir' : 'gider';
+    const status = (e.status === 'paid' || e.status === 'overdue') ? e.status : 'pending';
+    const repeat = (e.repeat === 'monthly') ? 'monthly' : 'none';
+    const cat = String(e.category ?? '').trim();
+    const amt = parseMoney(e.amount);
+    return {
+      id: String(e.id ?? cryptoRandomId()),
+      name: String(e.name ?? '').slice(0, 80),
+      amount: amt.value,
+      type,
+      category: cat || (type === 'gelir' ? 'Gelir' : 'Genel'),
+      billDay: normalizeBillDay(e.billDay, year, monthIndex0),
+      repeat,
+      status,
+      tags: String(e.tags ?? '').slice(0, 60)
+    };
+  }
 
-      <div class="summary-grid">
-        <div class="stat"><small>GELİR (ALINAN)</small><div class="val val-inc" id="t-inc">0 TL</div></div>
-        <div class="stat"><small>GELİR (BEKLEYEN)</small><div class="val val-incp" id="t-incp">0 TL</div></div>
-        <div class="stat"><small>GİDER (ÖDENEN)</small><div class="val val-exp" id="t-exp">0 TL</div></div>
-        <div class="stat"><small>GİDER (BEKLEYEN)</small><div class="val val-pend" id="t-pend">0 TL</div></div>
-        <div class="stat net"><small>NET (TAHMİNİ)</small><div class="val" id="t-net">0 TL</div></div>
-      </div>
-    </div>
-  </div>
+  function cryptoRandomId() {
+    try {
+      const a = new Uint8Array(8);
+      crypto.getRandomValues(a);
+      return Array.from(a).map(x=>x.toString(16).padStart(2,'0')).join('');
+    } catch {
+      return Math.random().toString(16).slice(2) + Date.now().toString(16);
+    }
+  }
 
-  <div class="calendar-section">
-    <div class="calendar-title">Ödeme Takvimi</div>
-    <div class="calendar-grid" id="calendar-body"></div>
-  </div>
+  function loadCategories() {
+    const raw = localStorage.getItem(CAT_KEY);
+    const arr = safeJsonParse(raw, null);
+    categories = Array.isArray(arr) ? arr.filter(x=>typeof x==='string' && x.trim()).map(x=>x.trim()) : [];
+    if (categories.length === 0) categories = ['Genel','Kira','Fatura','Market','Ulaşım','Yemek','Eğlence','Sağlık','Eğitim','Altın','Kredi','Gelir'];
+    saveCategories();
+  }
+  function saveCategories() { safeSetItem(CAT_KEY, JSON.stringify(Array.from(new Set(categories)))); }
 
-  <div class="footer">umtdvr</div>
+  function loadData() {
+    const key = storageKeyFor(viewDate);
+    const stored = localStorage.getItem(key);
+    const parsed = safeJsonParse(stored, []);
+    const y = viewDate.getFullYear();
+    const m = viewDate.getMonth();
 
-  <!-- ANALIZ MODAL -->
-  <div id="chartModal" class="modal-overlay">
-    <div class="modal">
-      <button class="closex" type="button" data-close="chartModal">x</button>
-      <h3 class="modal-title">Analiz</h3>
+    entries = Array.isArray(parsed) ? parsed.map(e => normalizeEntry(e, y, m)) : [];
 
-      <div class="tabs">
-        <div class="tab active" data-tab="tab-month">Aylık Dağılım</div>
-        <div class="tab" data-tab="tab-trend">Trend (12 Ay)</div>
-        <div class="tab" data-tab="tab-cats">Kategori</div>
-      </div>
+    if (entries.length === 0) {
+      entries = [normalizeEntry({ name:'', amount:0, type:'gider', status:'pending', billDay:1, category:'Genel', repeat:'none' }, y, m)];
+      saveData();
+    }
 
-      <div class="tabpane active" id="tab-month">
-        <div class="chart-wrap"><canvas id="chart_month"></canvas></div>
-        <div class="muted">Net negatifse grafikte 0 gösterilir.</div>
-      </div>
+    seedRecurringFromPreviousMonth();
+    markOverdueForViewedMonth();
+    renderAll();
+  }
 
-      <div class="tabpane" id="tab-trend">
-        <div class="chart-wrap chart-tall"><canvas id="chart_trend"></canvas></div>
-        <div class="muted">Gerçekleşen: paid. Tahmin: paid + pending.</div>
-      </div>
+  function saveData() {
+    const key = storageKeyFor(viewDate);
+    const y = viewDate.getFullYear();
+    const m = viewDate.getMonth();
+    const norm = entries.map(e => {
+      const n = normalizeEntry(e, y, m);
+      return { id:n.id, name:n.name, amount:n.amount, type:n.type, category:n.category, billDay:n.billDay, repeat:n.repeat, status:n.status, tags:n.tags };
+    });
+    safeSetItem(key, JSON.stringify(norm));
+    scheduleAutoBackup();
+  }
 
-      <div class="tabpane" id="tab-cats">
-        <div class="chart-wrap"><canvas id="chart_cat"></canvas></div>
-        <div class="muted">Sadece giderler kategori bazlı gösterilir (paid + pending).</div>
-      </div>
-    </div>
-  </div>
+  function scheduleAutoBackup() {
+    if (!accessToken || !driveFileId) return;
+    if (autoBackupTimer) clearTimeout(autoBackupTimer);
+    autoBackupTimer = setTimeout(async () => { try { await syncToDrive(true); } catch {} }, AUTO_BACKUP_DEBOUNCE_MS);
+  }
 
-  <!-- SETTINGS MODAL -->
-  <div id="settingsModal" class="modal-overlay">
-    <div class="modal">
-      <button class="closex" type="button" data-close="settingsModal">x</button>
-      <h3 class="modal-title">Ayarlar</h3>
+  function safeLoadMonth(year, monthIndex0) {
+    const key = `${STORAGE_PREFIX}${aylar[monthIndex0]}_${year}`;
+    const raw = localStorage.getItem(key);
+    const parsed = safeJsonParse(raw, []);
+    return Array.isArray(parsed) ? parsed : [];
+  }
 
-      <div class="settings-top">
-        <button id="btn_undo" class="btn btn-tool" type="button">Geri Al</button>
-        <button id="btn_notify" class="btn btn-tool" type="button">Bildirim İzni</button>
-        <button id="btn_sync" class="btn btn-tool" type="button">Buluttan Çek</button>
-      </div>
+  function seedRecurringFromPreviousMonth() {
+    const y = viewDate.getFullYear();
+    const m = viewDate.getMonth();
+    const prev = new Date(y, m - 1, 1);
+    const py = prev.getFullYear();
+    const pm = prev.getMonth();
 
-      <hr class="hr">
+    const prevData = safeLoadMonth(py, pm).map(e => normalizeEntry(e, py, pm));
+    const recurring = prevData.filter(e => e.repeat === 'monthly');
+    if (recurring.length === 0) return;
 
-      <div class="section-label">KATEGORİLER</div>
-      <div class="cat-add">
-        <input id="cat_input" placeholder="Yeni kategori adı">
-        <button id="btn_add_cat" class="btn" type="button">Ekle</button>
-      </div>
-      <div id="cat_list" class="cat-list"></div>
+    const idsThisMonth = new Set(entries.map(e => e.id));
+    let added = 0;
 
-      <hr class="hr">
+    for (const r of recurring) {
+      if (idsThisMonth.has(r.id)) continue;
+      const clone = normalizeEntry({ ...r, status:'pending' }, y, m);
+      clone.id = r.id;
+      const exists = entries.some(e => (e.name||'').toLowerCase() === (clone.name||'').toLowerCase() && e.type===clone.type && e.billDay===clone.billDay);
+      if (exists) continue;
+      entries.push(clone);
+      added++;
+    }
+    if (added > 0) saveData();
+  }
 
-      <div class="critical">
-        <div class="critical-title">KRİTİK</div>
-        <div class="critical-desc">Yerel verileri sıfırlar. Bulut yedeği varsa geri alınabilir.</div>
-        <button id="btn_reset" class="btn btn-danger critical-btn" type="button">Yerel Verileri Sıfırla</button>
-      </div>
-    </div>
-  </div>
+  function markOverdueForViewedMonth() {
+    const now = new Date();
+    const sameMonth = now.getFullYear() === viewDate.getFullYear() && now.getMonth() === viewDate.getMonth();
+    if (!sameMonth) return;
 
-  <!-- YEARLY MODAL -->
-  <div id="yearlyModal" class="modal-overlay">
-    <div class="modal">
-      <button class="closex" type="button" data-close="yearlyModal">x</button>
-      <h3 id="yearly-title" class="modal-title">Yıllık Özet</h3>
-      <div id="yearly-content"></div>
-    </div>
-  </div>
-</body>
-</html>
+    const today = now.getDate();
+    let changed = false;
+
+    for (const e of entries) {
+      if (e.type === 'gider' && e.status === 'pending' && e.billDay < today) { e.status = 'overdue'; changed = true; }
+      if (e.type === 'gider' && e.status === 'overdue' && e.billDay >= today) { e.status = 'pending'; changed = true; }
+    }
+    if (changed) saveData();
+  }
+
+  // ---------------- FILTER / SORT ----------------
+  function getFilters() {
+    return {
+      search: ($('f_search').value || '').trim().toLowerCase(),
+      type: $('f_type').value,
+      status: $('f_status').value,
+      cat: $('f_cat').value,
+      sort: $('f_sort').value
+    };
+  }
+
+  function applyFilterSort(list) {
+    const f = getFilters();
+    let out = list.slice();
+
+    if (f.search) out = out.filter(e => (e.name||'').toLowerCase().includes(f.search) || (e.tags||'').toLowerCase().includes(f.search));
+    if (f.type !== 'all') out = out.filter(e => e.type === f.type);
+    if (f.status !== 'all') out = out.filter(e => e.status === f.status);
+    if (f.cat !== 'all') out = out.filter(e => e.category === f.cat);
+
+    const byName = (a,b)=> (a.name||'').localeCompare((b.name||''), 'tr');
+    const byDay = (a,b)=> (a.billDay||0) - (b.billDay||0);
+    const byAmt = (a,b)=> (a.amount||0) - (b.amount||0);
+
+    if (f.sort === 'day_asc') out.sort(byDay);
+    if (f.sort === 'day_desc') out.sort((a,b)=>byDay(b,a));
+    if (f.sort === 'amt_asc') out.sort(byAmt);
+    if (f.sort === 'amt_desc') out.sort((a,b)=>byAmt(b,a));
+    if (f.sort === 'name_asc') out.sort(byName);
+
+    return out;
+  }
+
+  // ---------------- CALC ----------------
+  function calculateMonth(list, year, monthIndex0) {
+    let incPaid=0, incPending=0, expPaid=0, expPending=0, expOver=0;
+    for (const e0 of list) {
+      const e = normalizeEntry(e0, year, monthIndex0);
+      if (e.type === 'gelir') {
+        if (e.status === 'paid') incPaid += e.amount;
+        else incPending += e.amount;
+      } else {
+        if (e.status === 'paid') expPaid += e.amount;
+        else if (e.status === 'overdue') expOver += e.amount;
+        else expPending += e.amount;
+      }
+    }
+    const incForecast = incPaid + incPending;
+    const outForecast = expPaid + expPending + expOver;
+    const netForecast = incForecast - outForecast;
+    const ratio = incForecast > 0 ? Math.min((outForecast / incForecast) * 100, 100) : 0;
+    return { incPaid, incPending, expPaid, expPending, expOver, netForecast, ratio };
+  }
+
+  // ---------------- RENDER ----------------
+  function setAuthUi(isAuthed) {
+    $('auth_btn').style.display = isAuthed ? 'none' : 'flex';
+    $('auth_controls').style.display = isAuthed ? 'flex' : 'none';
+  }
+
+  function renderMonthTitle() {
+    $('display-month').textContent = `${aylar[viewDate.getMonth()]} ${viewDate.getFullYear()}`;
+  }
+
+  function renderFilters() {
+    const sel = $('f_cat');
+    const cur = sel.value;
+
+    // Build options safely (no innerHTML with user-controlled strings)
+    while (sel.firstChild) sel.removeChild(sel.firstChild);
+    const optAll = document.createElement('option');
+    optAll.value = 'all';
+    optAll.textContent = 'Kategori: Hepsi';
+    sel.appendChild(optAll);
+
+    for (const c of categories) {
+      const o = document.createElement('option');
+      o.value = c;
+      o.textContent = c;
+      sel.appendChild(o);
+    }
+
+    sel.value = categories.includes(cur) ? cur : 'all';
+  }
+
+  function renderCategoryChips() {
+    const host = $('cat_list');
+    host.textContent = '';
+    for (const c of categories) {
+      const chip = document.createElement('span');
+      chip.className = 'chip';
+      chip.textContent = c;
+
+      const x = document.createElement('button');
+      x.textContent = 'x';
+      x.type = 'button';
+      x.style.border='none'; x.style.background='none'; x.style.cursor='pointer';
+      x.style.fontWeight='900'; x.style.color='var(--text-dim)';
+
+      x.addEventListener('click', () => {
+        if (c === 'Gelir' || c === 'Genel') return;
+        categories = categories.filter(z => z !== c);
+        saveCategories();
+        let changed = false;
+        for (const e of entries) if (e.category === c) { e.category = 'Genel'; changed = true; }
+        if (changed) saveData();
+        renderFilters();
+        renderCategoryChips();
+        renderAll();
+      });
+
+      chip.appendChild(x);
+      host.appendChild(chip);
+    }
+  }
+
+  function renderSummary() {
+    const y = viewDate.getFullYear();
+    const m = viewDate.getMonth();
+    const s = calculateMonth(entries, y, m);
+
+    $('t-inc').textContent = `${s.incPaid.toLocaleString()} TL`;
+    $('t-incp').textContent = `${s.incPending.toLocaleString()} TL`;
+    $('t-exp').textContent = `${s.expPaid.toLocaleString()} TL`;
+    $('t-pend').textContent = `${(s.expPending + s.expOver).toLocaleString()} TL`;
+    $('t-net').textContent = `${s.netForecast.toLocaleString()} TL`;
+
+    $('progress-fill').style.width = `${s.ratio}%`;
+    $('progress-text').textContent = `HARCAMA ORANI: %${s.ratio.toFixed(1)}  •  GECİKEN: ${s.expOver.toLocaleString()} TL`;
+
+    return s;
+  }
+
+  function badgeClass(e) {
+    if (e.type === 'gelir') return e.status === 'paid' ? 'b-received' : 'b-await';
+    if (e.status === 'paid') return 'b-paid';
+    if (e.status === 'overdue') return 'b-overdue';
+    return 'b-pending';
+  }
+  function badgeText(e) {
+    if (e.type === 'gelir') return e.status === 'paid' ? 'ALINDI' : 'BEKLE';
+    if (e.status === 'paid') return 'ÖDENDİ';
+    if (e.status === 'overdue') return 'GECİKTİ';
+    return 'BEKLE';
+  }
+
+  function renderRows() {
+    const host = $('entries-container');
+    host.textContent = '';
+
+    const y = viewDate.getFullYear();
+    const m = viewDate.getMonth();
+    const viewList = applyFilterSort(entries);
+
+    viewList.forEach((item) => {
+      const idx = entries.findIndex(e => e.id === item.id);
+      if (idx < 0) return;
+
+      const e = normalizeEntry(entries[idx], y, m);
+      entries[idx] = e;
+
+      const row = document.createElement('div');
+      row.className = 'entry-row';
+
+      const icon = document.createElement('div');
+      icon.className = 'icon-box';
+      icon.textContent = getIcon(e.name);
+
+      const inName = document.createElement('input');
+      inName.value = e.name;
+      inName.placeholder = 'İşlem';
+      inName.addEventListener('input', (ev) => {
+        entries[idx].name = String(ev.target.value).slice(0,80);
+        icon.textContent = getIcon(entries[idx].name);
+        saveData();
+        renderCalendar();
+      });
+
+      const inAmount = document.createElement('input');
+      inAmount.type = 'number';
+      inAmount.placeholder = '0';
+      inAmount.value = e.amount ? String(e.amount) : '';
+      inAmount.addEventListener('input', (ev) => {
+        const amt = parseMoney(ev.target.value);
+        entries[idx].amount = amt.value;
+        saveData();
+        renderSummary();
+      });
+
+      const selType = document.createElement('select');
+      {
+        const o1 = document.createElement('option'); o1.value='gelir'; o1.textContent='Gelir';
+        const o2 = document.createElement('option'); o2.value='gider'; o2.textContent='Gider';
+        selType.appendChild(o1); selType.appendChild(o2);
+      }
+      selType.value = e.type;
+      selType.addEventListener('change', (ev) => {
+        const before = { ...entries[idx] };
+        entries[idx].type = ev.target.value === 'gelir' ? 'gelir' : 'gider';
+        if (!categories.includes(entries[idx].category)) entries[idx].category = entries[idx].type === 'gelir' ? 'Gelir' : 'Genel';
+        undoPush({ type:'update', payload:{ id:e.id, before, after:{...entries[idx]} }});
+        saveData();
+        renderAll();
+      });
+
+      const selCat = document.createElement('select');
+      for (const c of categories) {
+        const o = document.createElement('option');
+        o.value = c;
+        o.textContent = c;
+        selCat.appendChild(o);
+      }
+      selCat.value = categories.includes(e.category) ? e.category : (e.type==='gelir'?'Gelir':'Genel');
+      selCat.addEventListener('change', (ev) => {
+        const before = { ...entries[idx] };
+        entries[idx].category = ev.target.value;
+        undoPush({ type:'update', payload:{ id:e.id, before, after:{...entries[idx]} }});
+        saveData();
+        renderAll();
+      });
+
+      const inDay = document.createElement('input');
+      inDay.type = 'number';
+      inDay.min = '1';
+      inDay.max = String(daysInMonth(y,m));
+      inDay.value = String(e.billDay || 1);
+      inDay.addEventListener('input', (ev) => {
+        const before = { ...entries[idx] };
+        entries[idx].billDay = normalizeBillDay(ev.target.value, y, m);
+        undoPush({ type:'update', payload:{ id:e.id, before, after:{...entries[idx]} }});
+        saveData();
+        renderCalendar();
+        markOverdueForViewedMonth();
+        renderRows();
+      });
+
+      const selRepeat = document.createElement('select');
+      {
+        const o1 = document.createElement('option'); o1.value='none'; o1.textContent='Tekrar: Yok';
+        const o2 = document.createElement('option'); o2.value='monthly'; o2.textContent='Tekrar: Aylık';
+        selRepeat.appendChild(o1); selRepeat.appendChild(o2);
+      }
+      selRepeat.value = e.repeat;
+      selRepeat.addEventListener('change', (ev) => {
+        const before = { ...entries[idx] };
+        entries[idx].repeat = ev.target.value === 'monthly' ? 'monthly' : 'none';
+        undoPush({ type:'update', payload:{ id:e.id, before, after:{...entries[idx]} }});
+        saveData();
+      });
+
+      const badge = document.createElement('div');
+      badge.className = `badge ${badgeClass(e)}`;
+      badge.textContent = badgeText(e);
+      badge.addEventListener('click', () => {
+        const before = { ...entries[idx] };
+        entries[idx].status = entries[idx].status === 'paid' ? 'pending' : 'paid';
+        undoPush({ type:'update', payload:{ id:e.id, before, after:{...entries[idx]} }});
+        saveData();
+        markOverdueForViewedMonth();
+        renderAll();
+      });
+
+      const del = document.createElement('button');
+      del.className = 'delx';
+      del.type = 'button';
+      del.textContent = 'x';
+      del.addEventListener('click', () => {
+        const removed = entries[idx];
+        undoPush({ type:'delete', payload:{ index: idx, entry: removed }});
+        entries.splice(idx, 1);
+        if (entries.length === 0) entries = [normalizeEntry({ name:'', amount:0, type:'gider', status:'pending', billDay:1, category:'Genel' }, y, m)];
+        saveData();
+        renderAll();
+        toast('İşlem silindi', 'info');
+      });
+
+      row.appendChild(icon);
+      row.appendChild(inName);
+      row.appendChild(inAmount);
+      row.appendChild(selType);
+      row.appendChild(selCat);
+      row.appendChild(inDay);
+      row.appendChild(selRepeat);
+      row.appendChild(badge);
+      row.appendChild(del);
+
+      host.appendChild(row);
+    });
+  }
+
+  function renderCalendar() {
+    const body = $('calendar-body');
+    body.textContent = '';
+    const year = viewDate.getFullYear();
+    const month = viewDate.getMonth();
+    const days = daysInMonth(year, month);
+
+    for (let d=1; d<=days; d++) {
+      const day = document.createElement('div');
+      day.className = 'cal-day';
+
+      const num = document.createElement('div');
+      num.className = 'day-num';
+      num.textContent = String(d);
+      day.appendChild(num);
+
+      const todays = entries.filter(e => normalizeBillDay(e.billDay, year, month) === d);
+      for (const ev0 of todays) {
+        const ev = normalizeEntry(ev0, year, month);
+        const p = document.createElement('div');
+        p.className = 'pill';
+
+        if (ev.type === 'gelir') p.style.background = ev.status === 'paid' ? '#e0f2fe' : '#f1f5f9';
+        else p.style.background = ev.status === 'paid' ? '#dcfce7' : (ev.status === 'overdue' ? '#fee2e2' : '#fef3c7');
+
+        p.textContent = `${getIcon(ev.name)} ${ev.name || 'İsimsiz'} • ${ev.amount.toLocaleString()} TL`;
+        day.appendChild(p);
+      }
+
+      body.appendChild(day);
+    }
+  }
+
+  function renderAll() {
+    renderMonthTitle();
+    renderFilters();
+    renderRows();
+    renderSummary();
+    renderCalendar();
+  }
+
+  // ---------------- UNDO ----------------
+  function undoPush(item) {
+    undoStack.push(item);
+    if (undoStack.length > 60) undoStack.shift();
+  }
+
+  function undo() {
+    const it = undoStack.pop();
+    if (!it) { toast('Geri alınacak işlem yok', 'info'); return; }
+    const y = viewDate.getFullYear();
+    const m = viewDate.getMonth();
+
+    if (it.type === 'delete') {
+      const { index, entry } = it.payload;
+      entries.splice(Math.min(Math.max(index,0), entries.length), 0, normalizeEntry(entry, y, m));
+      saveData();
+      renderAll();
+      toast('Geri alındı', 'ok');
+      return;
+    }
+
+    if (it.type === 'update') {
+      const { id, before } = it.payload;
+      const idx = entries.findIndex(e => e.id === id);
+      if (idx >= 0) {
+        entries[idx] = normalizeEntry(before, y, m);
+        saveData();
+        renderAll();
+        toast('Geri alındı', 'ok');
+      }
+    }
+  }
+
+  // ---------------- QUICK ADD ----------------
+  function quickAddParse(text) {
+    const t = (text || '').trim();
+    if (!t) return null;
+    const parts = t.split(/\s+/);
+    if (parts.length < 3) return null;
+
+    let type = parts.some(p => p.toLowerCase() === 'gelir') ? 'gelir' : 'gider';
+    if (parts.some(p => p.toLowerCase() === 'gider')) type = 'gider';
+
+    const repeat = parts.some(p => p.toLowerCase() === 'aylık' || p.toLowerCase() === 'monthly') ? 'monthly' : 'none';
+
+    let amount = null;
+    let day = null;
+
+    for (const p of parts) {
+      const n = parseMoney(p);
+      if (n.ok && amount === null) { amount = n.value; continue; }
+      const di = Number.parseInt(p, 10);
+      if (Number.isFinite(di) && di >= 1 && di <= 31 && day === null) day = di;
+    }
+    if (amount === null) return null;
+    if (day === null) day = 1;
+
+    const idxAmount = parts.findIndex(p => parseMoney(p).ok);
+    const name = parts.slice(0, idxAmount).join(' ').trim() || 'İşlem';
+    return { name, amount, day, type, repeat };
+  }
+
+  function inferCategory(name) {
+    const n = (name || '').toLowerCase();
+    const rules = [
+      { k:['kira'], c:'Kira' },
+      { k:['elektrik','su','doğalgaz','internet','telefon','fatura'], c:'Fatura' },
+      { k:['market','migros','carrefour'], c:'Market' },
+      { k:['yakıt','akaryakıt','benzin','dizel'], c:'Ulaşım' },
+      { k:['yemek','restoran'], c:'Yemek' },
+      { k:['kredi','taksit'], c:'Kredi' },
+      { k:['altın','gram','çeyrek'], c:'Altın' },
+      { k:['maaş','prim'], c:'Gelir' }
+    ];
+    for (const r of rules) if (r.k.some(x=>n.includes(x)) && categories.includes(r.c)) return r.c;
+    return categories.includes('Genel') ? 'Genel' : (categories[0] || 'Genel');
+  }
+
+  function addEntry(e) {
+    const y = viewDate.getFullYear();
+    const m = viewDate.getMonth();
+    const ne = normalizeEntry({
+      name: e.name,
+      amount: e.amount,
+      billDay: e.day,
+      type: e.type,
+      repeat: e.repeat,
+      status: 'pending',
+      category: e.type === 'gelir' ? 'Gelir' : inferCategory(e.name)
+    }, y, m);
+    entries.push(ne);
+    saveData();
+    renderAll();
+    toast('Eklendi', 'ok');
+  }
+
+  // ---------------- SEARCH PANEL TOGGLE ----------------
+  function toggleSearchPanel() {
+    const p = $('search_panel');
+    if (!p) return;
+    const open = p.style.display !== 'none';
+    p.style.display = open ? 'none' : 'grid';
+    if (!open) { const s = $('f_search'); if (s) s.focus(); }
+  }
+
+  // ---------------- DRIVE ----------------
+  async function driveRequest(url, options = {}) {
+    if (!accessToken) throw new Error('NO_TOKEN');
+    const res = await fetch(url, { ...options, headers: { ...(options.headers||{}), Authorization: `Bearer ${accessToken}` } });
+    const txt = await res.text().catch(()=> '');
+    if (!res.ok) throw new Error(`DRIVE_${res.status}: ${txt.slice(0,180)}`);
+    const ct = res.headers.get('content-type') || '';
+    if (ct.includes('application/json')) {
+      try { return JSON.parse(txt || '{}'); } catch { return {}; }
+    }
+    return txt;
+  }
+
+  async function fetchUserInfo() {
+    try {
+      const res = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', { headers:{ Authorization:`Bearer ${accessToken}` }});
+      if (!res.ok) return;
+      const user = await res.json();
+      if (user?.email) { $('user-email').textContent = user.email; $('user-info').style.display='flex'; }
+      if (user?.picture) $('user-img').src = user.picture;
+    } catch {}
+  }
+
+  async function findAppDataFileIdByName(name) {
+    const q = encodeURIComponent(`name="${name}" and trashed=false`);
+    const url = `https://www.googleapis.com/drive/v3/files?spaces=appDataFolder&q=${q}&fields=files(id,name,modifiedTime)`;
+    const data = await driveRequest(url);
+    return (data?.files?.[0]?.id) || null;
+  }
+
+  function exportStateForDrive(withSnapshot=false) {
+    const out = { schemaVersion: 2, months: {}, theme: localStorage.getItem(THEME_KEY) || 'light', categories, notify: localStorage.getItem(NOTIFY_KEY) || '0' };
+    for (let i=0; i<localStorage.length; i++) {
+      const k = localStorage.key(i);
+      if (k && k.startsWith(STORAGE_PREFIX)) {
+        const raw = localStorage.getItem(k);
+        const parsed = safeJsonParse(raw, null);
+        if (Array.isArray(parsed)) out.months[k] = parsed;
+      }
+    }
+    if (withSnapshot) out.snapshots = [{ at: new Date().toISOString(), note:'autosave', monthsCount:Object.keys(out.months).length }];
+    return out;
+  }
+
+  function applyDriveState(driveData) {
+    const months = (driveData && typeof driveData === 'object' && driveData.months && typeof driveData.months === 'object') ? driveData.months : {};
+
+    for (let i=localStorage.length-1; i>=0; i--) {
+      const k = localStorage.key(i);
+      if (k && k.startsWith(STORAGE_PREFIX)) localStorage.removeItem(k);
+    }
+    for (const [k,v] of Object.entries(months)) safeSetItem(k, JSON.stringify(v));
+
+    if (driveData?.theme === 'dark' || driveData?.theme === 'light') {
+      safeSetItem(THEME_KEY, driveData.theme);
+      applyTheme(driveData.theme);
+    }
+
+    if (Array.isArray(driveData?.categories)) {
+      categories = driveData.categories.filter(x=>typeof x==='string' && x.trim()).map(x=>x.trim());
+      if (!categories.includes('Genel')) categories.unshift('Genel');
+      if (!categories.includes('Gelir')) categories.push('Gelir');
+      saveCategories();
+    }
+
+    if (driveData?.notify === '1' || driveData?.notify === '0') safeSetItem(NOTIFY_KEY, driveData.notify);
+
+    loadData();
+  }
+
+  async function initDriveFile() {
+    driveFileId = await findAppDataFileIdByName(DRIVE_BACKUP_NAME);
+    if (driveFileId) return;
+
+    const created = await driveRequest('https://www.googleapis.com/drive/v3/files?fields=id', {
+      method:'POST',
+      headers:{ 'Content-Type':'application/json' },
+      body: JSON.stringify({ name: DRIVE_BACKUP_NAME, parents:['appDataFolder'], mimeType:'application/json' })
+    });
+
+    driveFileId = created?.id || null;
+    if (driveFileId) await syncToDrive(false);
+  }
+
+  async function syncToDrive(isAuto=false) {
+    if (!driveFileId || !accessToken) return;
+    const url = `https://www.googleapis.com/upload/drive/v3/files/${driveFileId}?uploadType=media`;
+    await driveRequest(url, {
+      method:'PATCH',
+      headers:{ 'Content-Type':'application/json' },
+      body: JSON.stringify(exportStateForDrive(isAuto))
+    });
+    if (!isAuto) toast('Yedeklendi', 'ok');
+  }
+
+  async function syncFromDrive() {
+    if (!driveFileId || !accessToken) return;
+    const url = `https://www.googleapis.com/drive/v3/files/${driveFileId}?alt=media`;
+    const raw = await driveRequest(url);
+    const data = (typeof raw === 'string') ? safeJsonParse(raw, {}) : raw;
+    applyDriveState(data);
+    toast('Bulut eşitlendi', 'info');
+  }
+
+  // ---------------- SESSION (inactivity) ----------------
+  function formatMMSS(ms) {
+    const t = Math.max(0, Math.ceil(ms/1000));
+    const mm = String(Math.floor(t/60)).padStart(2,'0');
+    const ss = String(t%60).padStart(2,'0');
+    return `${mm}:${ss}`;
+  }
+
+  function setCountdownVisible(v) {
+    const b = $('session_badge');
+    if (!b) return;
+    b.style.display = v ? 'inline-flex' : 'none';
+  }
+
+  function renderCountdown() {
+    const el = $('session_countdown');
+    if (!el) return;
+    const left = sessionExpireAt - Date.now();
+    el.textContent = formatMMSS(left);
+  }
+
+  function setSessionState(label) {
+    const el = $('session_state');
+    if (el) el.textContent = label;
+  }
+
+  function stopCountdown() {
+    if (countdownTimer) { clearInterval(countdownTimer); countdownTimer = null; }
+    setCountdownVisible(false);
+  }
+
+  function startCountdown() {
+    setCountdownVisible(true);
+    renderCountdown();
+    if (countdownTimer) clearInterval(countdownTimer);
+    countdownTimer = setInterval(renderCountdown, 1000);
+  }
+
+  function clearSessionTimer() {
+    if (sessionTimer) { clearTimeout(sessionTimer); sessionTimer = null; }
+  }
+
+  async function expireSession() {
+    if (!sessionActive) return;
+    sessionActive = false;
+    clearSessionTimer();
+    setSessionState('EXPIRED');
+    renderCountdown();
+    toast('Oturum süresi doldu', 'err');
+    await handleLogoutWithPrompt(true);
+  }
+
+  function armSessionTimer() {
+    clearSessionTimer();
+    sessionExpireAt = Date.now() + SESSION_TIMEOUT_MS;
+    startCountdown();
+    sessionTimer = setTimeout(expireSession, SESSION_TIMEOUT_MS);
+  }
+
+  function touchSessionInstant() {
+    if (!sessionActive) return;
+    setSessionState('ACTIVE');
+    armSessionTimer();
+  }
+
+  function touchSessionFromMouseMove() {
+    if (!sessionActive) return;
+    const now = Date.now();
+    if (now - lastMouseResetAt < MOUSE_RESET_THROTTLE_MS) { setSessionState('IDLE'); return; }
+    lastMouseResetAt = now;
+    setSessionState('ACTIVE');
+    armSessionTimer();
+  }
+
+  function bindSessionActivity() {
+    window.addEventListener('click', touchSessionInstant, { passive:true });
+    window.addEventListener('keydown', touchSessionInstant, { passive:true });
+    window.addEventListener('touchstart', touchSessionInstant, { passive:true });
+    window.addEventListener('scroll', touchSessionInstant, { passive:true });
+    window.addEventListener('mousemove', touchSessionFromMouseMove, { passive:true });
+  }
+
+  // ---------------- AUTH ----------------
+  function initTokenClient() {
+    tokenClient = google.accounts.oauth2.initTokenClient({
+      client_id: CLIENT_ID,
+      scope: SCOPES,
+      callback: async (res) => {
+        if (!res || res.error) { toast('Giriş hatası', 'err'); return; }
+        accessToken = res.access_token;
+        setAuthUi(true);
+
+        sessionActive = true;
+        setSessionState('ACTIVE');
+        armSessionTimer();
+
+        await fetchUserInfo();
+        try { await initDriveFile(); toast('Drive hazır', 'ok'); } catch (e) { toast(String(e?.message || e), 'err'); }
+      }
+    });
+  }
+
+  function handleAuthClick() {
+    if (!tokenClient) initTokenClient();
+    tokenClient.requestAccessToken();
+  }
+
+  async function handleLogoutWithPrompt(isAuto=false) {
+    const ask = isAuto
+      ? 'Oturum süresi doldu. Çıkmadan önce buluta kaydedilsin mi?'
+      : 'Güvenli çıkış. Çıkmadan önce buluta kaydedilsin mi?';
+
+    let doSave = false;
+    try { doSave = confirm(ask); } catch { doSave = false; }
+
+    if (doSave) {
+      try { await syncToDrive(false); } catch (e) { toast(String(e?.message || e), 'err'); }
+    }
+
+    const token = accessToken;
+    accessToken = null; driveFileId = null;
+
+    sessionActive = false;
+    clearSessionTimer();
+    stopCountdown();
+
+    if (!token) { location.reload(); return; }
+    try { google.accounts.oauth2.revoke(token, () => location.reload()); }
+    catch { location.reload(); }
+  }
+
+  async function handleLogout() { await handleLogoutWithPrompt(false); }
+
+  // ---------------- EVENTS ----------------
+  function changeMonth(delta) {
+    viewDate.setMonth(viewDate.getMonth() + delta);
+    loadData();
+  }
+
+  function addBlankRow() {
+    const y = viewDate.getFullYear();
+    const m = viewDate.getMonth();
+    entries.push(normalizeEntry({ name:'', amount:0, type:'gider', status:'pending', billDay:1, category:'Genel', repeat:'none' }, y, m));
+    saveData();
+    renderAll();
+  }
+
+  function buildYearlyTable(year) {
+    const table = document.createElement('table');
+    table.style.width='100%';
+    table.style.borderCollapse='collapse';
+
+    const thead = document.createElement('thead');
+    const trh = document.createElement('tr');
+    const heads = ['AY','GELİR','GİDER','GECİKEN','NET'];
+    for (const h of heads) {
+      const th = document.createElement('th');
+      th.textContent = h;
+      trh.appendChild(th);
+    }
+    thead.appendChild(trh);
+    table.appendChild(thead);
+
+    const tbody = document.createElement('tbody');
+    let Tinc=0, Tout=0, Tover=0, Tnet=0;
+
+    for (let mi=0; mi<12; mi++) {
+      const data = safeLoadMonth(year, mi);
+      const st = calculateMonth(data, year, mi);
+      const inc = st.incPaid + st.incPending;
+      const out = st.expPaid + st.expPending + st.expOver;
+
+      Tinc += inc; Tout += out; Tover += st.expOver; Tnet += st.netForecast;
+
+      const tr = document.createElement('tr');
+
+      const tdAy = document.createElement('td'); tdAy.textContent = aylar[mi];
+      const tdInc = document.createElement('td'); tdInc.textContent = `${inc.toLocaleString()} TL`;
+      const tdOut = document.createElement('td'); tdOut.textContent = `${out.toLocaleString()} TL`;
+      const tdOver = document.createElement('td'); tdOver.textContent = `${st.expOver.toLocaleString()} TL`;
+      const tdNet = document.createElement('td');
+      const b = document.createElement('b'); b.textContent = `${st.netForecast.toLocaleString()} TL`;
+      tdNet.appendChild(b);
+
+      tr.appendChild(tdAy);
+      tr.appendChild(tdInc);
+      tr.appendChild(tdOut);
+      tr.appendChild(tdOver);
+      tr.appendChild(tdNet);
+
+      tbody.appendChild(tr);
+    }
+
+    const trT = document.createElement('tr');
+    trT.style.background='var(--accent)';
+    trT.style.color='white';
+
+    const tdT = (txt, bold=false) => {
+      const td = document.createElement('td');
+      if (bold) { const b = document.createElement('b'); b.textContent = txt; td.appendChild(b); }
+      else td.textContent = txt;
+      return td;
+    };
+
+    trT.appendChild(tdT('TOPLAM', true));
+    trT.appendChild(tdT(`${Tinc.toLocaleString()} TL`, true));
+    trT.appendChild(tdT(`${Tout.toLocaleString()} TL`, true));
+    trT.appendChild(tdT(`${Tover.toLocaleString()} TL`, true));
+    trT.appendChild(tdT(`${Tnet.toLocaleString()} TL`, true));
+
+    tbody.appendChild(trT);
+    table.appendChild(tbody);
+
+    return table;
+  }
+
+  function bindEvents() {
+    $('auth_btn').addEventListener('click', handleAuthClick);
+    $('btn_backup').addEventListener('click', async () => { try { await syncToDrive(false); } catch (e) { toast(String(e?.message||e), 'err'); }});
+    $('btn_logout').addEventListener('click', handleLogout);
+
+    $('btn_theme').addEventListener('click', toggleTheme);
+    $('btn_prev').addEventListener('click', () => changeMonth(-1));
+    $('btn_next').addEventListener('click', () => changeMonth(1));
+
+    $('btn_add').addEventListener('click', addBlankRow);
+
+    $('btn_yearly').addEventListener('click', () => {
+      const year = viewDate.getFullYear();
+      $('yearly-title').textContent = `${year} Yıllık Özet`;
+
+      const host = $('yearly-content');
+      host.textContent = '';
+      host.appendChild(buildYearlyTable(year));
+
+      showModal('yearlyModal');
+    });
+
+    $('btn_chart').addEventListener('click', () => {
+      showModal('chartModal');
+      toast('Grafikler modala hazır. İstersen tekrar eklenir.', 'info');
+    });
+
+    $('btn_pdf').addEventListener('click', () => {
+      const element = document.querySelector('.budget-card');
+      const opt = {
+        margin: 10,
+        filename: `Butce_${aylar[viewDate.getMonth()]}_${viewDate.getFullYear()}.pdf`,
+        html2canvas: { scale: 2 },
+        jsPDF: { unit: 'mm', format: 'a4' }
+      };
+      html2pdf().set(opt).from(element).save();
+    });
+
+    $('btn_settings').addEventListener('click', () => { renderCategoryChips(); showModal('settingsModal'); });
+    $('btn_search').addEventListener('click', toggleSearchPanel);
+
+    $('btn_quick_add').addEventListener('click', () => {
+      const q = $('quick_input').value;
+      const parsed = quickAddParse(q);
+      if (!parsed) { toast('Hızlı ekleme formatı hatalı', 'err'); return; }
+      $('quick_input').value = '';
+      addEntry(parsed);
+    });
+    $('quick_input').addEventListener('keydown', (e) => { if (e.key === 'Enter') $('btn_quick_add').click(); });
+
+    ['f_search','f_type','f_status','f_cat','f_sort'].forEach(id => {
+      $(id).addEventListener('input', renderAll);
+      $(id).addEventListener('change', renderAll);
+    });
+
+    document.querySelectorAll('[data-close]').forEach(btn => btn.addEventListener('click', () => closeModal(btn.getAttribute('data-close'))));
+    ['chartModal','settingsModal','yearlyModal'].forEach(id => $(id).addEventListener('click', (e) => { if (e.target && e.target.id === id) closeModal(id); }));
+
+    $('btn_reset').addEventListener('click', () => {
+      const c1 = confirm('Yerel veriler silinecek. Emin misiniz?'); if (!c1) return;
+      const c2 = confirm('Son onay. Silinsin mi?'); if (!c2) return;
+      for (let i=localStorage.length-1; i>=0; i--) { const k = localStorage.key(i); if (k && k.startsWith(STORAGE_PREFIX)) localStorage.removeItem(k); }
+      loadData();
+      toast('Yerel veriler sıfırlandı', 'info');
+    });
+
+    $('btn_undo').addEventListener('click', undo);
+
+    $('btn_add_cat').addEventListener('click', () => {
+      const v = ($('cat_input').value || '').trim();
+      if (!v) return;
+      if (!categories.includes(v)) categories.push(v);
+      $('cat_input').value = '';
+      saveCategories();
+      renderFilters();
+      renderCategoryChips();
+      renderAll();
+      toast('Kategori eklendi', 'ok');
+    });
+    $('cat_input').addEventListener('keydown', (e) => { if (e.key === 'Enter') $('btn_add_cat').click(); });
+
+    $('btn_notify').addEventListener('click', async () => {
+      if (!('Notification' in window)) { toast('Bildirim desteklenmiyor', 'err'); return; }
+      const p = await Notification.requestPermission();
+      safeSetItem(NOTIFY_KEY, p === 'granted' ? '1' : '0');
+      toast(p === 'granted' ? 'Bildirim açık' : 'Bildirim kapalı', p === 'granted' ? 'ok' : 'info');
+    });
+
+    $('btn_sync').addEventListener('click', async () => {
+      if (!accessToken || !driveFileId) { toast('Önce Google ile bağlan', 'err'); return; }
+      try { await syncFromDrive(); } catch (e) { toast(String(e?.message||e), 'err'); }
+    });
+  }
+
+  // ---------------- INIT ----------------
+  function init() {
+    loadTheme();
+    loadCategories();
+    bindEvents();
+    bindSessionActivity();
+
+    setAuthUi(false);
+    setCountdownVisible(false);
+
+    initTokenClient();
+    loadData();
+
+    if (!localStorage.getItem(NOTIFY_KEY)) safeSetItem(NOTIFY_KEY, '0');
+  }
+
+  window.addEventListener('load', init);
+})();
