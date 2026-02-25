@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Bütçe Planlama CANLI V1</title>
+  <title>Bütçe CANLI V1</title>
 
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" />
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600&display=swap" rel="stylesheet">
@@ -14,478 +14,223 @@
 
   <style>
     :root {
-      --bg-body: #f8fafc;
+      --bg-body: #f1f5f9;
       --bg-card: #ffffff;
       --text-main: #1e293b;
-      --text-dim: #64748b;
-      --border: #e2e8f0;
       --primary: #2563eb;
-      --primary-hover: #1d4ed8;
-      --accent: #f59e0b;
       --success: #10b981;
       --danger: #ef4444;
-      --shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
-      --panel-width: 650px; /* İstediğin sabit genişlik */
+      --border: #e2e8f0;
+      --panel-width: 650px;
     }
-
     [data-theme="dark"] {
-      --bg-body: #0f172a;
-      --bg-card: #1e293b;
-      --text-main: #f1f5f9;
-      --text-dim: #94a3b8;
-      --border: #334155;
+      --bg-body: #0f172a; --bg-card: #1e293b; --text-main: #f1f5f9; --border: #334155;
     }
 
     * { box-sizing: border-box; font-family: 'Poppins', sans-serif; }
-    body { margin: 0; background: var(--bg-body); color: var(--text-main); transition: background 0.3s; }
+    body { margin: 0; background: var(--bg-body); color: var(--text-main); }
 
-    /* Header & Auth UI */
     .app-header {
       display: flex; justify-content: space-between; align-items: center;
       padding: 1rem 2rem; background: var(--bg-card); border-bottom: 1px solid var(--border);
-      position: sticky; top: 0; z-index: 100; box-shadow: var(--shadow);
+      position: sticky; top: 0; z-index: 1000;
     }
-    .header-left, .header-right { display: flex; align-items: center; gap: 15px; }
-    .app-title { margin: 0; font-size: 1.5rem; font-weight: 600; color: var(--primary); }
-    .app-ver { font-size: 0.7rem; vertical-align: middle; background: var(--border); padding: 2px 6px; border-radius: 4px; color: var(--text-dim); }
 
-    .user-info { display: flex; align-items: center; gap: 8px; font-size: 0.85rem; }
-    .user-img { width: 32px; height: 32px; border-radius: 50%; border: 2px solid var(--primary); }
-
-    /* Oturum Lamba Göstergesi */
-    .session-indicator {
-      display: flex; align-items: center; gap: 8px; background: var(--bg-body);
-      padding: 5px 12px; border-radius: 20px; border: 1px solid var(--border); font-size: 0.8rem; font-weight: 500;
-    }
-    .status-led {
-      width: 10px; height: 10px; border-radius: 50%;
-      background: #ccc; position: relative;
-    }
-    .status-active .status-led { background: var(--success); box-shadow: 0 0 8px var(--success); animation: pulse 2s infinite; }
-    .status-idle .status-led { background: var(--accent); }
-    .status-expired .status-led { background: var(--danger); }
+    /* Sol Panel 650px Sabit */
+    .main-layout { display: flex; gap: 20px; padding: 20px; align-items: flex-start; }
+    .left-panel { width: var(--panel-width); flex-shrink: 0; display: flex; flex-direction: column; gap: 15px; }
     
-    @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.5; } 100% { opacity: 1; } }
+    .widget-card { background: var(--bg-card); border-radius: 12px; border: 1px solid var(--border); overflow: hidden; }
+    .widget-header { background: var(--primary); color: white; padding: 8px 12px; font-size: 0.8rem; font-weight: 600; }
+    .crop-box { height: 160px; overflow: hidden; position: relative; }
+    .crop-box iframe { width: 100%; height: 800px; border: none; position: absolute; top: -150px; }
 
-    /* Layout */
-    .main-layout { display: flex; gap: 20px; padding: 20px; max-width: 100%; align-items: flex-start; }
+    /* Bütçe Alanı */
+    .budget-card { flex-grow: 1; background: var(--bg-card); border-radius: 12px; padding: 20px; border: 1px solid var(--border); box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); }
     
-    .left-panel { width: var(--panel-width); flex-shrink: 0; display: flex; flex-direction: column; gap: 20px; }
-    .budget-card { flex-grow: 1; background: var(--bg-card); border-radius: 12px; padding: 20px; box-shadow: var(--shadow); border: 1px solid var(--border); overflow-x: auto; }
+    .session-indicator { display: flex; align-items: center; gap: 8px; font-size: 0.8rem; font-weight: 600; }
+    .status-led { width: 10px; height: 10px; border-radius: 50%; background: #ccc; }
+    .status-active .status-led { background: var(--success); box-shadow: 0 0 8px var(--success); }
 
-    /* Widgets */
-    .widget-card { background: var(--bg-card); border-radius: 12px; overflow: hidden; border: 1px solid var(--border); box-shadow: var(--shadow); }
-    .widget-header { background: var(--primary); color: white; padding: 8px 15px; font-size: 0.85rem; font-weight: 600; letter-spacing: 0.5px; }
-    .crop-box { height: 180px; overflow: hidden; position: relative; }
-    .crop-box iframe { width: 100%; height: 1000px; border: none; position: absolute; top: -150px; }
-    .currency-box iframe { top: -220px; }
-
-    /* Buttons & Controls */
-    .btn {
-      display: inline-flex; align-items: center; gap: 6px; padding: 8px 16px; 
-      border-radius: 8px; border: 1px solid var(--border); background: var(--bg-card);
-      color: var(--text-main); cursor: pointer; font-size: 0.9rem; transition: all 0.2s;
-    }
-    .btn:hover { background: var(--bg-body); border-color: var(--text-dim); }
+    .btn { cursor: pointer; border: 1px solid var(--border); border-radius: 8px; padding: 8px 12px; display: inline-flex; align-items: center; gap: 5px; background: var(--bg-card); color: var(--text-main); }
     .btn-primary { background: var(--primary); color: white; border: none; }
-    .btn-primary:hover { background: var(--primary-hover); }
-    .btn-green { color: var(--success); border-color: var(--success); }
-    .btn-green:hover { background: var(--success); color: white; }
     
-    .ico { font-size: 1.2rem; }
+    .entry-row { display: grid; grid-template-columns: 40px 2fr 1fr 100px 100px 60px 80px 40px; gap: 10px; padding: 8px 0; border-bottom: 1px solid var(--border); align-items: center; }
+    input, select { padding: 6px; border-radius: 6px; border: 1px solid var(--border); background: var(--bg-body); color: var(--text-main); width: 100%; }
+    
     .hidden { display: none !important; }
-
-    /* Table & Rows */
-    .entry-head { 
-      display: grid; grid-template-columns: 40px 2fr 1.2fr 1fr 1fr 70px 1fr 100px 40px;
-      gap: 10px; padding: 12px; font-weight: 600; color: var(--text-dim); border-bottom: 2px solid var(--border); font-size: 0.8rem;
-    }
-    .entry-row {
-      display: grid; grid-template-columns: 40px 2fr 1.2fr 1fr 1fr 70px 1fr 100px 40px;
-      gap: 10px; padding: 8px; align-items: center; border-bottom: 1px solid var(--border);
-    }
-    input, select { 
-      width: 100%; padding: 6px 10px; border-radius: 6px; border: 1px solid var(--border);
-      background: var(--bg-body); color: var(--text-main); font-size: 0.9rem;
-    }
-    
-    .badge { 
-      padding: 4px 8px; border-radius: 6px; font-size: 0.75rem; font-weight: 600; 
-      text-align: center; cursor: pointer; user-select: none;
-    }
-    .b-paid { background: #dcfce7; color: #166534; }
-    .b-pending { background: #fef3c7; color: #92400e; }
-    .b-overdue { background: #fee2e2; color: #991b1b; }
-    .b-received { background: #e0f2fe; color: #075985; }
-
-    /* Summary */
-    .summary-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 15px; margin-top: 20px; }
-    .stat { background: var(--bg-body); padding: 15px; border-radius: 10px; border-left: 4px solid var(--primary); }
-    .stat .val { font-size: 1.2rem; font-weight: 600; margin-top: 5px; }
-    .val-inc { color: var(--success); }
-    .val-exp { color: var(--danger); }
-
-    /* Calendar Section */
-    .calendar-section { padding: 20px; }
-    .calendar-title { font-size: 1.2rem; font-weight: 600; margin-bottom: 15px; display: flex; align-items: center; gap: 10px; }
-    .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 10px; }
-    .cal-day { background: var(--bg-card); border: 1px solid var(--border); border-radius: 8px; min-height: 100px; padding: 8px; }
-    .day-num { font-weight: 600; color: var(--text-dim); margin-bottom: 5px; }
-    .pill { font-size: 0.7rem; padding: 2px 6px; border-radius: 4px; margin-bottom: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-
-    /* Modal Styles */
-    .modal-overlay { 
-      position: fixed; inset: 0; background: rgba(0,0,0,0.5); 
-      display: flex; justify-content: center; align-items: center; z-index: 1000;
-      backdrop-filter: blur(4px);
-    }
-    .modal { 
-      background: var(--bg-card); width: 90%; max-width: 800px; max-height: 90vh; 
-      border-radius: 16px; padding: 25px; position: relative; overflow-y: auto; box-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.1);
-    }
-    .closex { position: absolute; top: 15px; right: 15px; font-size: 1.5rem; border: none; background: none; cursor: pointer; color: var(--text-dim); }
-
-    /* Footer */
-    .footer { text-align: center; padding: 2rem; color: var(--text-dim); font-size: 0.8rem; letter-spacing: 2px; }
-
-    @media (max-width: 1200px) {
-      .main-layout { flex-direction: column; }
-      .left-panel { width: 100%; flex-direction: row; flex-wrap: wrap; }
-      .widget-card { flex: 1 1 300px; }
-    }
+    .material-symbols-outlined { font-size: 20px; vertical-align: middle; }
   </style>
 </head>
+<body data-theme="light">
 
-<body>
-  <div class="app-header">
-    <div class="header-left">
-      <h1 class="app-title">Bütçe <span class="app-ver">CANLI V1</span></h1>
-      <div id="user-info" class="user-info hidden">
-        <img id="user-img" alt="user" src="" class="user-img">
-        <span id="user-email" class="user-email"></span>
-      </div>
-    </div>
-
-    <div class="header-right">
-      <button id="auth_btn" class="btn btn-primary" type="button">
-        <span class="material-symbols-outlined">login</span> Google ile Bağlan
-      </button>
-
-      <div id="auth_controls" class="auth-controls hidden">
-        <div id="session_badge" class="session-indicator status-active">
-          <div class="status-led"></div>
-          <span id="session_state">ACTIVE</span>
-          <span id="session_countdown">15:00</span>
-        </div>
-        <button id="btn_backup" class="btn btn-green" type="button"><span class="material-symbols-outlined">cloud_upload</span>Yedekle</button>
-        <button id="btn_logout" class="btn btn-gray" type="button"><span class="material-symbols-outlined">power_settings_new</span></button>
-      </div>
-
-      <button id="btn_theme" type="button" class="btn"><span class="material-symbols-outlined">dark_mode</span></button>
+<div class="app-header">
+  <div style="display: flex; align-items: center; gap: 20px;">
+    <h2 style="margin: 0; color: var(--primary);">CANLI V1</h2>
+    <div id="user-info" class="hidden" style="display: flex; align-items: center; gap: 10px;">
+      <img id="user-img" style="width: 30px; border-radius: 50%;">
+      <span id="user-email" style="font-size: 0.8rem;"></span>
     </div>
   </div>
 
-  <div class="main-layout">
-    <div class="left-panel">
-      <div class="widget-card">
-        <div class="widget-header">24 AYAR GRAM ALTIN</div>
-        <div class="crop-box">
-          <iframe src="https://www.altinkaynak.com/canli-kurlar/altin" loading="lazy"></iframe>
-        </div>
-      </div>
+  <div style="display: flex; align-items: center; gap: 10px;">
+    <div id="session_badge" class="session-indicator hidden">
+      <div class="status-led"></div>
+      <span id="session_state">IDLE</span>
+      <span id="session_countdown">--:--</span>
+    </div>
+    <button id="auth_btn" class="btn btn-primary"><span class="material-symbols-outlined">login</span> Google</button>
+    <button id="btn_backup" class="btn hidden"><span class="material-symbols-outlined">cloud_upload</span></button>
+    <button id="btn_logout" class="btn hidden"><span class="material-symbols-outlined">logout</span></button>
+    <button id="btn_theme" class="btn"><span class="material-symbols-outlined">contrast</span></button>
+  </div>
+</div>
 
-      <div class="widget-card">
-        <div class="widget-header">ÇEYREK ALTIN</div>
-        <div class="crop-box">
-          <iframe src="https://www.altinkaynak.com/canli-kurlar/altin" loading="lazy"></iframe>
-        </div>
-      </div>
+<div class="main-layout">
+  <div class="left-panel">
+    <div class="widget-card"><div class="widget-header">GRAM ALTIN</div><div class="crop-box"><iframe src="https://www.altinkaynak.com/canli-kurlar/altin"></iframe></div></div>
+    <div class="widget-card"><div class="widget-header">ÇEYREK ALTIN</div><div class="crop-box"><iframe src="https://www.altinkaynak.com/canli-kurlar/altin"></iframe></div></div>
+    <div class="widget-card"><div class="widget-header">DÖVİZ</div><div class="crop-box"><iframe src="https://www.altinkaynak.com/canli-kurlar/doviz"></iframe></div></div>
+  </div>
 
-      <div class="widget-card">
-        <div class="widget-header">DÖVİZ KURLARI (USD/EUR)</div>
-        <div class="crop-box currency-box">
-          <iframe src="https://www.altinkaynak.com/canli-kurlar/doviz" loading="lazy"></iframe>
-        </div>
+  <div class="budget-card">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+      <div style="display: flex; gap: 10px; align-items: center;">
+        <button id="btn_prev" class="btn"><span class="material-symbols-outlined">arrow_back</span></button>
+        <b id="month-title" style="min-width: 120px; text-align: center;">---</b>
+        <button id="btn_next" class="btn"><span class="material-symbols-outlined">arrow_forward</span></button>
+      </div>
+      <div style="display: flex; gap: 5px;">
+        <button id="btn_chart" class="btn"><span class="material-symbols-outlined">bar_chart</span></button>
+        <button id="btn_pdf" class="btn"><span class="material-symbols-outlined">picture_as_pdf</span></button>
+        <button id="btn_settings" class="btn"><span class="material-symbols-outlined">settings</span></button>
       </div>
     </div>
 
-    <div class="budget-card">
-      <div class="sticky-controls">
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-          <div style="display: flex; align-items: center; gap: 10px;">
-            <button id="btn_prev" class="btn"><span class="material-symbols-outlined">chevron_left</span></button>
-            <span id="display-month" style="font-weight: 600; font-size: 1.1rem; min-width: 140px; text-align: center;"></span>
-            <button id="btn_next" class="btn"><span class="material-symbols-outlined">chevron_right</span></button>
-          </div>
-
-          <div style="display: flex; gap: 8px;">
-            <button id="btn_search" class="btn" title="Ara"><span class="material-symbols-outlined">search</span></button>
-            <button id="btn_yearly" class="btn"><span class="material-symbols-outlined">calendar_month</span> Yıllık</button>
-            <button id="btn_chart" class="btn"><span class="material-symbols-outlined">monitoring</span> Analiz</button>
-            <button id="btn_pdf" class="btn"><span class="material-symbols-outlined">picture_as_pdf</span> PDF</button>
-            <button id="btn_settings" class="btn"><span class="material-symbols-outlined">settings</span> Ayarlar</button>
-          </div>
-        </div>
-
-        <div id="search_panel" class="hidden" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 10px; margin-bottom: 15px; padding: 15px; background: var(--bg-body); border-radius: 8px;">
-            <input id="f_search" placeholder="İşlem adı...">
-            <select id="f_type">
-              <option value="all">Tüm Türler</option>
-              <option value="gelir">Gelir</option>
-              <option value="gider">Gider</option>
-            </select>
-            <select id="f_status">
-              <option value="all">Tüm Durumlar</option>
-              <option value="paid">Ödendi/Alındı</option>
-              <option value="pending">Bekliyor</option>
-              <option value="overdue">Gecikti</option>
-            </select>
-            <select id="f_cat"><option value="all">Tüm Kategoriler</option></select>
-            <select id="f_sort">
-              <option value="day_asc">Gün (Artan)</option>
-              <option value="amt_desc">Tutar (Azalan)</option>
-            </select>
-        </div>
-
-        <div style="display: flex; gap: 10px; margin-bottom: 20px;">
-          <input id="quick_input" style="flex-grow: 1;" placeholder="Hızlı ekle: 'Kira 8500 5 gider'">
-          <button id="btn_quick_add" class="btn btn-primary"><span class="material-symbols-outlined">add_task</span> Ekle</button>
-        </div>
-      </div>
-
-      <div class="entry-head">
-        <div></div><div>İşlem</div><div>Tutar</div><div>Tür</div><div>Kategori</div><div>Gün</div><div>Tekrar</div><div>Durum</div><div></div>
-      </div>
-      <div id="entries-container"></div>
-
-      <button id="btn_add" class="btn btn-primary" style="margin-top: 15px; width: 100%; justify-content: center;">
-        <span class="material-symbols-outlined">add_circle</span> Yeni İşlem Ekle
-      </button>
-
-      <div class="summary-grid">
-        <div class="stat"><small>GELİR (TOPLAM)</small><div class="val val-inc" id="t-inc">0 TL</div></div>
-        <div class="stat"><small>GİDER (TOPLAM)</small><div class="val val-exp" id="t-exp">0 TL</div></div>
-        <div class="stat" style="border-left-color: var(--accent);"><small>BEKLEYEN</small><div class="val" id="t-pend" style="color: var(--accent);">0 TL</div></div>
-        <div class="stat" style="border-left-color: var(--text-main);"><small>NET KALAN</small><div class="val" id="t-net">0 TL</div></div>
-      </div>
-    </div>
+    <input id="quick_input" placeholder="Hızlı ekle: 'Market 500 12 gider'" style="margin-bottom: 15px;">
+    
+    <div id="entries-container"></div>
+    
+    <button id="btn_add" class="btn btn-primary" style="width: 100%; margin-top: 15px; justify-content: center;">
+      <span class="material-symbols-outlined">add</span> Yeni İşlem
+    </button>
   </div>
+</div>
 
-  <div class="calendar-section">
-    <div class="calendar-title"><span class="material-symbols-outlined">calendar_today</span> Ödeme Takvimi</div>
-    <div id="calendar-body" class="calendar-grid"></div>
-  </div>
+<script>
+  // Senin gönderdiğin tüm mantık değişkenleri
+  let accessToken = null, driveFileId = null, tokenClient = null;
+  let sessionActive = false, sessionTimer = null, countdownTimer = null, sessionExpireAt = 0;
+  let viewDate = new Date(), entries = [], categories = ["Genel", "Gelir", "Kira", "Market", "Fatura"];
+  const SESSION_TIMEOUT_MS = 15 * 60 * 1000;
+  const DRIVE_BACKUP_NAME = "CANLI_V1_BACKUP.json";
+  const STORAGE_PREFIX = "butce_";
 
-  <div class="footer">designed by umtdvr</div>
+  // --- Senin Gönderdiğin Drive ve Session Fonksiyonları ---
+  async function driveRequest(url, options = {}) {
+    if (!accessToken) throw new Error('NO_TOKEN');
+    const res = await fetch(url, { ...options, headers: { ...(options.headers||{}), Authorization: `Bearer ${accessToken}` } });
+    if (!res.ok) throw new Error(`DRIVE_${res.status}`);
+    return res.headers.get('content-type')?.includes('json') ? res.json() : res.text();
+  }
 
-  <div id="chartModal" class="modal-overlay hidden">
-    <div class="modal">
-      <button class="closex" data-close="chartModal">×</button>
-      <h3><span class="material-symbols-outlined">analytics</span> Harcama Analizi</h3>
-      <div style="height: 400px;"><canvas id="chart_month"></canvas></div>
-    </div>
-  </div>
+  async function syncToDrive(isAuto=false) {
+    if (!driveFileId || !accessToken) return;
+    const url = `https://www.googleapis.com/upload/drive/v3/files/${driveFileId}?uploadType=media`;
+    const data = { months: {}, categories, theme: document.body.getAttribute('data-theme') };
+    // LocalStorage'dan verileri topla
+    for(let i=0; i<localStorage.length; i++){
+      let k = localStorage.key(i);
+      if(k.startsWith(STORAGE_PREFIX)) data.months[k] = JSON.parse(localStorage.getItem(k));
+    }
+    await driveRequest(url, { method:'PATCH', body: JSON.stringify(data) });
+    if(!isAuto) alert("Buluta kaydedildi!");
+  }
 
-  <div id="settingsModal" class="modal-overlay hidden">
-    <div class="modal">
-      <button class="closex" data-close="settingsModal">×</button>
-      <h3><span class="material-symbols-outlined">settings</span> Ayarlar</h3>
-      <div style="display: flex; flex-direction: column; gap: 15px;">
-        <button id="btn_undo" class="btn"><span class="material-symbols-outlined">undo</span> Son İşlemi Geri Al</button>
-        <button id="btn_sync" class="btn"><span class="material-symbols-outlined">cloud_download</span> Bulut Verilerini Çek</button>
-        <hr style="width: 100%; border: 0; border-top: 1px solid var(--border);">
-        <button id="btn_reset" class="btn btn-danger" style="color: var(--danger);"><span class="material-symbols-outlined">delete_forever</span> Tüm Yerel Verileri Sıfırla</button>
-      </div>
-    </div>
-  </div>
+  function armSessionTimer() {
+    clearTimeout(sessionTimer);
+    sessionActive = true;
+    sessionExpireAt = Date.now() + SESSION_TIMEOUT_MS;
+    document.getElementById('session_badge').classList.remove('hidden');
+    sessionTimer = setTimeout(() => { sessionActive = false; alert("Oturum doldu"); }, SESSION_TIMEOUT_MS);
+    
+    if(countdownTimer) clearInterval(countdownTimer);
+    countdownTimer = setInterval(() => {
+      let diff = sessionExpireAt - Date.now();
+      if(diff <= 0) { clearInterval(countdownTimer); return; }
+      let m = Math.floor(diff/60000), s = Math.floor((diff%60000)/1000);
+      document.getElementById('session_countdown').textContent = `${m}:${s < 10 ? '0' : ''}${s}`;
+    }, 1000);
+  }
 
-  <div id="yearlyModal" class="modal-overlay hidden">
-    <div class="modal">
-      <button class="closex" data-close="yearlyModal">×</button>
-      <h3 id="yearly-title">Yıllık Özet</h3>
-      <div id="yearly-content"></div>
-    </div>
-  </div>
+  // --- Render ve Başlatma ---
+  function renderRows() {
+    const container = document.getElementById('entries-container');
+    container.innerHTML = '';
+    entries.forEach((e, idx) => {
+      const div = document.createElement('div');
+      div.className = 'entry-row';
+      div.innerHTML = `
+        <span class="material-symbols-outlined" style="color:var(--primary)">payments</span>
+        <input type="text" value="${e.name}" oninput="entries[${idx}].name=this.value; saveLocal()">
+        <input type="number" value="${e.amount}" oninput="entries[${idx}].amount=this.value; saveLocal()">
+        <select onchange="entries[${idx}].type=this.value; saveLocal()">
+          <option value="gider" ${e.type=='gider'?'selected':''}>Gider</option>
+          <option value="gelir" ${e.type=='gelir'?'selected':''}>Gelir</option>
+        </select>
+        <input type="text" value="${e.category}" list="cat-list">
+        <input type="number" value="${e.billDay}">
+        <button class="btn" style="border:none" onclick="entries[${idx}].status='paid'; saveLocal(); renderRows()"><span class="material-symbols-outlined" style="color:var(--success)">check_circle</span></button>
+        <button class="btn" style="border:none" onclick="entries.splice(${idx},1); saveLocal(); renderRows()"><span class="material-symbols-outlined" style="color:var(--danger)">delete</span></button>
+      `;
+      container.appendChild(div);
+    });
+  }
 
-  <script nonce="umtdvr_v52">
-    (() => {
-      'use strict';
-      // Sabitler ve Global Değişkenler
-      const CLIENT_ID = '874591165323-ktdp2ojebh4225v0335lvuk3pct8eraq.apps.googleusercontent.com';
-      const SCOPES = 'https://www.googleapis.com/auth/drive.appdata https://www.googleapis.com/auth/userinfo.email https://www.googleapis.com/auth/userinfo.profile';
-      const STORAGE_PREFIX = 'butce_';
-      const THEME_KEY = 'budget_theme_v1';
-      const CAT_KEY = 'budget_categories_v1';
-      const DRIVE_BACKUP_NAME = 'budget_appdata_v2.json';
-      const SESSION_TIMEOUT_MS = 15 * 60 * 1000;
+  function saveLocal() {
+    const key = STORAGE_PREFIX + document.getElementById('month-title').textContent;
+    localStorage.setItem(key, JSON.stringify(entries));
+  }
 
-      const aylar = ["OCAK","ŞUBAT","MART","NİSAN","MAYIS","HAZİRAN","TEMMUZ","AĞUSTOS","EYLÜL","EKİM","KASIM","ARALIK"];
-      let accessToken = null, tokenClient = null, driveFileId = null;
-      let viewDate = new Date(), entries = [], categories = [], undoStack = [];
-      let sessionTimer = null, countdownTimer = null, sessionActive = false, sessionExpireAt = 0;
+  function loadLocal() {
+    const key = STORAGE_PREFIX + document.getElementById('month-title').textContent;
+    entries = JSON.parse(localStorage.getItem(key)) || [];
+    renderRows();
+  }
 
-      const $ = (id) => document.getElementById(id);
+  // --- Başlatıcılar ---
+  window.onload = () => {
+    const aylar = ["OCAK","ŞUBAT","MART","NİSAN","MAYIS","HAZİRAN","TEMMUZ","AĞUSTOS","EYLÜL","EKİM","KASIM","ARALIK"];
+    const updateTitle = () => document.getElementById('month-title').textContent = aylar[viewDate.getMonth()] + "_" + viewDate.getFullYear();
+    
+    updateTitle();
+    loadLocal();
 
-      // --- İkon Haritası (Material Symbols İsimleri) ---
-      const iconMap = [
-        { k:'maaş', v:'payments' }, { k:'kira', v:'home' }, { k:'market', v:'shopping_cart' }, 
-        { k:'fatura', v:'description' }, { k:'elektrik', v:'bolt' }, { k:'su', v:'water_drop' },
-        { k:'doğalgaz', v:'local_fire_department' }, { k:'internet', v:'language' }, { k:'araba', v:'directions_car' },
-        { k:'yakıt', v:'local_gas_station' }, { k:'kredi', v:'credit_card' }, { k:'yemek', v:'restaurant' }
-      ];
-      function getIconName(name) {
-        const n = String(name || '').toLowerCase();
-        for (const it of iconMap) if (n.includes(it.k)) return it.v;
-        return 'account_balance_wallet';
+    document.getElementById('btn_next').onclick = () => { viewDate.setMonth(viewDate.getMonth()+1); updateTitle(); loadLocal(); };
+    document.getElementById('btn_prev').onclick = () => { viewDate.setMonth(viewDate.getMonth()-1); updateTitle(); loadLocal(); };
+    document.getElementById('btn_add').onclick = () => { entries.push({name:'', amount:0, type:'gider', category:'Genel', billDay:1, status:'pending'}); renderRows(); };
+    document.getElementById('btn_theme').onclick = () => {
+      let t = document.body.getAttribute('data-theme') == 'light' ? 'dark' : 'light';
+      document.body.setAttribute('data-theme', t);
+    };
+
+    // Auth Init
+    tokenClient = google.accounts.oauth2.initTokenClient({
+      client_id: '874591165323-ktdp2ojebh4225v0335lvuk3pct8eraq.apps.googleusercontent.com', // Kendi ID'ni kontrol et
+      scope: 'https://www.googleapis.com/auth/drive.appdata profile email',
+      callback: (res) => {
+        accessToken = res.access_token;
+        document.getElementById('auth_btn').classList.add('hidden');
+        document.getElementById('btn_backup').classList.remove('hidden');
+        document.getElementById('btn_logout').classList.remove('hidden');
+        armSessionTimer();
       }
+    });
 
-      // --- Oturum Yönetimi ---
-      function updateSessionUI(state) {
-        const badge = $('session_badge');
-        const label = $('session_state');
-        badge.className = 'session-indicator status-' + state.toLowerCase();
-        label.textContent = state;
-      }
+    document.getElementById('auth_btn').onclick = () => tokenClient.requestAccessToken();
+    document.getElementById('btn_backup').onclick = () => syncToDrive();
+  };
+</script>
 
-      function startCountdown() {
-        if (countdownTimer) clearInterval(countdownTimer);
-        countdownTimer = setInterval(() => {
-          const left = sessionExpireAt - Date.now();
-          if (left <= 0) {
-            clearInterval(countdownTimer);
-            updateSessionUI('EXPIRED');
-            return;
-          }
-          const t = Math.ceil(left / 1000);
-          $('session_countdown').textContent = `${String(Math.floor(t/60)).padStart(2,'0')}:${String(t%60).padStart(2,'0')}`;
-        }, 1000);
-      }
-
-      function resetSession() {
-        if (!sessionActive) return;
-        sessionExpireAt = Date.now() + SESSION_TIMEOUT_MS;
-        updateSessionUI('ACTIVE');
-        if (sessionTimer) clearTimeout(sessionTimer);
-        sessionTimer = setTimeout(() => { sessionActive = false; updateSessionUI('EXPIRED'); }, SESSION_TIMEOUT_MS);
-        startCountdown();
-      }
-
-      // --- Veri Fonksiyonları ---
-      function loadData() {
-        const key = `${STORAGE_PREFIX}${aylar[viewDate.getMonth()]}_${viewDate.getFullYear()}`;
-        const stored = localStorage.getItem(key);
-        entries = stored ? JSON.parse(stored) : [];
-        if (entries.length === 0) entries = [{ id: Date.now().toString(), name: '', amount: 0, type: 'gider', status: 'pending', billDay: 1, category: 'Genel' }];
-        renderAll();
-      }
-
-      function saveData() {
-        const key = `${STORAGE_PREFIX}${aylar[viewDate.getMonth()]}_${viewDate.getFullYear()}`;
-        localStorage.setItem(key, JSON.stringify(entries));
-        renderSummary();
-      }
-
-      // --- Render Fonksiyonları ---
-      function renderRows() {
-        const container = $('entries-container');
-        container.innerHTML = '';
-        entries.forEach((e, idx) => {
-          const row = document.createElement('div');
-          row.className = 'entry-row';
-          row.innerHTML = `
-            <span class="material-symbols-outlined" style="color:var(--primary)">${getIconName(e.name)}</span>
-            <input type="text" value="${e.name}" placeholder="İşlem..." oninput="updateEntry(${idx}, 'name', this.value)">
-            <input type="number" value="${e.amount}" placeholder="0" oninput="updateEntry(${idx}, 'amount', this.value)">
-            <select onchange="updateEntry(${idx}, 'type', this.value)">
-              <option value="gider" ${e.type==='gider'?'selected':''}>Gider</option>
-              <option value="gelir" ${e.type==='gelir'?'selected':''}>Gelir</option>
-            </select>
-            <input type="text" value="${e.category}" oninput="updateEntry(${idx}, 'category', this.value)">
-            <input type="number" value="${e.billDay}" min="1" max="31" oninput="updateEntry(${idx}, 'billDay', this.value)">
-            <span class="material-symbols-outlined ico">repeat</span>
-            <div class="badge ${e.status==='paid'?'b-paid':'b-pending'}" onclick="toggleStatus(${idx})">${e.status==='paid'?'ÖDENDİ':'BEKLE'}</div>
-            <button class="btn" style="border:none; color:var(--danger)" onclick="deleteEntry(${idx})"><span class="material-symbols-outlined">delete</span></button>
-          `;
-          container.appendChild(row);
-        });
-      }
-
-      window.updateEntry = (idx, field, val) => {
-        entries[idx][field] = field === 'amount' || field === 'billDay' ? parseFloat(val) : val;
-        saveData();
-        if(field === 'name') renderRows(); // İkonun güncellenmesi için
-      };
-
-      window.toggleStatus = (idx) => {
-        entries[idx].status = entries[idx].status === 'paid' ? 'pending' : 'paid';
-        saveData();
-        renderRows();
-      };
-
-      window.deleteEntry = (idx) => {
-        undoStack.push(JSON.parse(JSON.stringify(entries)));
-        entries.splice(idx, 1);
-        saveData();
-        renderRows();
-      };
-
-      function renderSummary() {
-        let inc = 0, exp = 0, pend = 0;
-        entries.forEach(e => {
-          const amt = parseFloat(e.amount) || 0;
-          if (e.type === 'gelir') inc += amt;
-          else {
-            exp += amt;
-            if (e.status !== 'paid') pend += amt;
-          }
-        });
-        $('t-inc').textContent = inc.toLocaleString() + ' TL';
-        $('t-exp').textContent = exp.toLocaleString() + ' TL';
-        $('t-pend').textContent = pend.toLocaleString() + ' TL';
-        $('t-net').textContent = (inc - exp).toLocaleString() + ' TL';
-      }
-
-      function renderAll() {
-        $('display-month').textContent = `${aylar[viewDate.getMonth()]} ${viewDate.getFullYear()}`;
-        renderRows();
-        renderSummary();
-      }
-
-      // --- Google Auth ---
-      function initAuth() {
-        tokenClient = google.accounts.oauth2.initTokenClient({
-          client_id: CLIENT_ID,
-          scope: SCOPES,
-          callback: (res) => {
-            accessToken = res.access_token;
-            sessionActive = true;
-            $('auth_btn').classList.add('hidden');
-            $('auth_controls').classList.remove('hidden');
-            resetSession();
-          }
-        });
-      }
-
-      // --- Event Listeners ---
-      $('auth_btn').onclick = () => tokenClient.requestAccessToken();
-      $('btn_next').onclick = () => { viewDate.setMonth(viewDate.getMonth() + 1); loadData(); };
-      $('btn_prev').onclick = () => { viewDate.setMonth(viewDate.getMonth() - 1); loadData(); };
-      $('btn_theme').onclick = () => {
-        const cur = document.body.getAttribute('data-theme');
-        document.body.setAttribute('data-theme', cur === 'dark' ? 'light' : 'dark');
-      };
-      $('btn_add').onclick = () => {
-        entries.push({ id: Date.now().toString(), name: '', amount: 0, type: 'gider', status: 'pending', billDay: 1, category: 'Genel' });
-        renderRows();
-      };
-
-      window.onclick = resetSession;
-      window.onkeypress = resetSession;
-
-      // Init
-      initAuth();
-      loadData();
-    })();
-  </script>
 </body>
 </html>
