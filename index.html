@@ -1,11 +1,11 @@
+<!-- SADECE DEĞİŞEN PARÇALARI DEĞİL, TAM DOSYAYI VERİYORUM (V4.1) -->
 <!DOCTYPE html>
 <html lang="tr">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Bütçe Planlama Uygulaması V4.0</title>
+  <title>Bütçe Planlama Uygulaması V4.1</title>
 
-  <!-- CSP: tek dosya + CDN + Google GIS (inline script/style nedeniyle unsafe-inline kullanılıyor) -->
   <meta http-equiv="Content-Security-Policy" content="
     default-src 'self';
     script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://accounts.google.com;
@@ -251,7 +251,32 @@
 
     .footer-copyright { margin-top: 20px; margin-bottom: 20px; font-size: 10px; color: var(--text-dim); opacity: 0.6; }
     .muted { color: var(--text-dim); font-size: 11px; font-weight: 600; }
-    .icon-box { font-size: 11px; font-weight: 800; letter-spacing: 0.5px; color: var(--text-dim); }
+
+    /* ICON DÜZELTME: emoji yerine küçük ikon fontu/simge kutusu */
+    .icon-box {
+      width: 32px; height: 30px;
+      display: flex; align-items: center; justify-content: center;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      background: var(--primary);
+      font-size: 16px;
+      line-height: 1;
+      user-select: none;
+    }
+
+    /* Grafik boyutu küçültme */
+    #budgetChart {
+      width: 100% !important;
+      height: 260px !important;
+      max-height: 260px !important;
+      display: block;
+      margin: 0 auto;
+    }
+    .chart-wrap {
+      width: 100%;
+      max-width: 420px;
+      margin: 0 auto;
+    }
   </style>
 </head>
 
@@ -260,7 +285,7 @@
     <div class="header-left">
       <h1 style="font-size: 1.3rem; margin:0;">
         Bütçe Planlama Uygulaması
-        <span style="font-size:10px; opacity:0.5;">V4.0</span>
+        <span style="font-size:10px; opacity:0.5;">V4.1</span>
       </h1>
       <div id="user-info" style="display:none; align-items:center; gap:8px;">
         <img id="user-img" alt="user" src="" style="width:24px; height:24px; border-radius:50%;">
@@ -380,7 +405,9 @@
     <div class="modal-content">
       <button class="modal-close-x" type="button" data-close="chartModal">×</button>
       <h3>Genel Bütçe Dağılımı</h3>
-      <canvas id="budgetChart"></canvas>
+      <div class="chart-wrap">
+        <canvas id="budgetChart"></canvas>
+      </div>
       <div class="muted" style="margin-top:10px;">
         Net değeri negatif ise grafikte 0 olarak gösterilir.
       </div>
@@ -435,20 +462,19 @@
   let viewDate = new Date();
   let entries = [];
 
-  // Basit, emojisiz kategori etiketi
+  // ICONLAR GERİ: emoji seti + fallback
   const iconMap = [
-    { k: 'maaş', v: 'INC' }, { k: 'kira', v: 'RNT' }, { k: 'market', v: 'MRK' }, { k: 'fatura', v: 'BIL' },
-    { k: 'elektrik', v: 'ELC' }, { k: 'su', v: 'WTR' }, { k: 'doğalgaz', v: 'GAS' }, { k: 'internet', v: 'NET' },
-    { k: 'telefon', v: 'TEL' }, { k: 'akaryakıt', v: 'FUE' }, { k: 'araba', v: 'CAR' }, { k: 'altın', v: 'GLD' },
-    { k: 'kredi', v: 'CRD' }, { k: 'yemek', v: 'FOD' }
+    { k: 'maaş', v: '💰' }, { k: 'kira', v: '🏠' }, { k: 'market', v: '🛒' }, { k: 'fatura', v: '📄' },
+    { k: 'elektrik', v: '⚡' }, { k: 'su', v: '💧' }, { k: 'doğalgaz', v: '🔥' }, { k: 'internet', v: '🌐' },
+    { k: 'telefon', v: '📱' }, { k: 'akaryakıt', v: '⛽' }, { k: 'araba', v: '🚗' }, { k: 'altın', v: '🪙' },
+    { k: 'kredi', v: '💳' }, { k: 'yemek', v: '🍔' }
   ];
-  function getIconTag(name) {
+  function getIcon(name) {
     const n = String(name || '').toLowerCase();
     for (const it of iconMap) if (n.includes(it.k)) return it.v;
-    return 'TXN';
+    return '👛';
   }
 
-  // ---------- DOM ----------
   const $ = (id) => document.getElementById(id);
 
   const elAuthBtn = $('auth_btn');
@@ -468,7 +494,6 @@
   const elProgText = $('progress-text');
   const elProgFill = $('progress-fill');
 
-  // ---------- Helpers ----------
   function showToast(message, type = 'info') {
     const t = document.createElement('div');
     t.className = `toast-msg toast-${type}`;
@@ -483,7 +508,6 @@
 
   function showModal(id) { $(id).style.display = 'flex'; }
   function closeModal(id) { $(id).style.display = 'none'; }
-
   function daysInMonth(year, monthIndex0) { return new Date(year, monthIndex0 + 1, 0).getDate(); }
 
   function safeJsonParse(raw, fallback) {
@@ -524,16 +548,10 @@
   }
 
   function safeSetItem(key, value) {
-    try {
-      localStorage.setItem(key, value);
-      return true;
-    } catch (err) {
-      showToast('Depolama hatası (kota veya izin).', 'error');
-      return false;
-    }
+    try { localStorage.setItem(key, value); return true; }
+    catch { showToast('Depolama hatası (kota veya izin).', 'error'); return false; }
   }
 
-  // ---------- Calculations ----------
   function calculateV2(list, year, monthIndex0) {
     let incomePaid = 0, incomePending = 0, expensePaid = 0, expensePending = 0, invalidCount = 0;
     for (const e0 of list) {
@@ -567,11 +585,9 @@
     elProgFill.style.width = `${s.spendRatioForecast}%`;
     elProgText.textContent = `HARCAMA ORANI (TAHMİNİ): %${s.spendRatioForecast.toFixed(1)}`;
 
-    if (s.invalidCount > 0) showToast('Bazı tutarlar geçersiz bulundu ve 0 kabul edildi.', 'info');
     return s;
   }
 
-  // ---------- Google / Drive ----------
   function setAuthUi(isAuthed) {
     elAuthBtn.style.display = isAuthed ? 'none' : 'flex';
     elAuthControls.style.display = isAuthed ? 'flex' : 'none';
@@ -605,7 +621,7 @@
         elUserInfo.style.display = 'flex';
       }
       if (user && user.picture) elUserImg.src = user.picture;
-    } catch { /* ignore */ }
+    } catch { }
   }
 
   async function findAppDataFileIdByName(name) {
@@ -632,12 +648,10 @@
   function applyDriveState(driveData) {
     const months = (driveData && typeof driveData === 'object' && driveData.months && typeof driveData.months === 'object')
       ? driveData.months : {};
-    // temizle
     for (let i = localStorage.length - 1; i >= 0; i--) {
       const k = localStorage.key(i);
       if (k && k.startsWith(STORAGE_PREFIX)) localStorage.removeItem(k);
     }
-    // uygula
     for (const [k, v] of Object.entries(months)) safeSetItem(k, JSON.stringify(v));
     if (driveData && (driveData.theme === 'dark' || driveData.theme === 'light')) {
       safeSetItem(THEME_KEY, driveData.theme);
@@ -647,19 +661,12 @@
   }
 
   async function initDriveFile() {
-    driveFileId = await findAppDataFileIdByName(DRIVE_BACKUP_NAME);
-    if (driveFileId) {
-      await syncFromDrive();
-      return;
-    }
+    driveFileId = await findAppDataFileIdByName('budget_appdata_v1.json');
+    if (driveFileId) { await syncFromDrive(); return; }
     const created = await driveRequest('https://www.googleapis.com/drive/v3/files', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        name: DRIVE_BACKUP_NAME,
-        parents: ['appDataFolder'],
-        mimeType: 'application/json'
-      })
+      body: JSON.stringify({ name: 'budget_appdata_v1.json', parents: ['appDataFolder'], mimeType: 'application/json' })
     });
     driveFileId = created && created.id ? created.id : null;
     if (driveFileId) await syncToDrive();
@@ -694,12 +701,8 @@
         accessToken = res.access_token;
         setAuthUi(true);
         await fetchUserInfo();
-        try {
-          await initDriveFile();
-          showToast('Bağlantı başarılı', 'success');
-        } catch {
-          showToast('Drive başlatma hatası', 'error');
-        }
+        try { await initDriveFile(); showToast('Bağlantı başarılı', 'success'); }
+        catch { showToast('Drive başlatma hatası', 'error'); }
       }
     });
   }
@@ -711,14 +714,10 @@
 
   function handleLogout() {
     if (!accessToken) { location.reload(); return; }
-    try {
-      google.accounts.oauth2.revoke(accessToken, () => location.reload());
-    } catch {
-      location.reload();
-    }
+    try { google.accounts.oauth2.revoke(accessToken, () => location.reload()); }
+    catch { location.reload(); }
   }
 
-  // ---------- Theme ----------
   function applyTheme(theme) {
     document.body.setAttribute('data-theme', theme === 'dark' ? 'dark' : 'light');
   }
@@ -733,7 +732,6 @@
     safeSetItem(THEME_KEY, next);
   }
 
-  // ---------- Data load/save ----------
   function loadData() {
     const key = storageKeyFor(viewDate);
     const stored = localStorage.getItem(key);
@@ -742,7 +740,6 @@
     const y = viewDate.getFullYear();
     const m = viewDate.getMonth();
     entries = base.map(e => normalizeEntry(e, y, m));
-
     if (entries.length === 0) entries = [normalizeEntry({ name: '', amount: 0, type: 'gider', status: 'pending', billDay: 1 }, y, m)];
     renderAll();
   }
@@ -751,7 +748,6 @@
     const key = storageKeyFor(viewDate);
     const y = viewDate.getFullYear();
     const m = viewDate.getMonth();
-    // normalize ederek sakla (schema stabilize)
     const normalized = entries.map(e => {
       const n = normalizeEntry(e, y, m);
       return { name: n.name, amount: n.amount, type: n.type, status: n.status, billDay: n.billDay };
@@ -759,7 +755,6 @@
     safeSetItem(key, JSON.stringify(normalized));
   }
 
-  // ---------- Rendering (no user data in innerHTML) ----------
   function clearNode(node) { while (node.firstChild) node.removeChild(node.firstChild); }
 
   function makeButtonX(onClick) {
@@ -792,7 +787,6 @@
 
   function renderRows() {
     clearNode(elEntries);
-
     const y = viewDate.getFullYear();
     const m = viewDate.getMonth();
 
@@ -805,7 +799,7 @@
 
       const icon = document.createElement('div');
       icon.className = 'icon-box';
-      icon.textContent = getIconTag(entry.name);
+      icon.textContent = getIcon(entry.name);
 
       const inName = document.createElement('input');
       inName.type = 'text';
@@ -814,9 +808,9 @@
       inName.addEventListener('input', (e) => {
         const v = e.target.value;
         entries[index].name = String(v).slice(0, 80);
-        icon.textContent = getIconTag(entries[index].name);
+        icon.textContent = getIcon(entries[index].name);
         saveData();
-        renderCalendar(); // isim değişince takvim etiketleri güncellenir
+        renderCalendar();
       });
 
       const inAmount = document.createElement('input');
@@ -832,17 +826,14 @@
 
       const selType = document.createElement('select');
       const optIncome = document.createElement('option');
-      optIncome.value = 'gelir';
-      optIncome.textContent = 'Gelir';
+      optIncome.value = 'gelir'; optIncome.textContent = 'Gelir';
       const optExpense = document.createElement('option');
-      optExpense.value = 'gider';
-      optExpense.textContent = 'Gider';
+      optExpense.value = 'gider'; optExpense.textContent = 'Gider';
       selType.appendChild(optIncome);
       selType.appendChild(optExpense);
       selType.value = entry.type;
       selType.addEventListener('change', (e) => {
         entries[index].type = e.target.value === 'gelir' ? 'gelir' : 'gider';
-        // tip değişince statü etiketleri değişir
         saveData();
         renderAll();
       });
@@ -851,9 +842,7 @@
 
       const del = makeButtonX(() => {
         entries.splice(index, 1);
-        if (entries.length === 0) {
-          entries = [normalizeEntry({ name: '', amount: 0, type: 'gider', status: 'pending', billDay: 1 }, y, m)];
-        }
+        if (entries.length === 0) entries = [normalizeEntry({ name: '', amount: 0, type: 'gider', status: 'pending', billDay: 1 }, y, m)];
         saveData();
         renderAll();
         showToast('İşlem silindi', 'info');
@@ -872,7 +861,6 @@
 
   function renderCalendar() {
     clearNode(elCal);
-
     const year = viewDate.getFullYear();
     const month = viewDate.getMonth();
     const days = daysInMonth(year, month);
@@ -886,7 +874,6 @@
       dayNum.textContent = String(d);
       dayDiv.appendChild(dayNum);
 
-      // sadece gider + bekleyen/ödenen ayırımı renk ile
       const todays = entries.filter(e => e.type === 'gider' && normalizeBillDay(e.billDay, year, month) === d);
       for (const ev0 of todays) {
         const ev = normalizeEntry(ev0, year, month);
@@ -896,9 +883,7 @@
         pill.style.borderRadius = '3px';
         pill.style.marginTop = '2px';
         pill.style.background = ev.status === 'paid' ? '#dcfce7' : '#fef3c7';
-
-        const tag = getIconTag(ev.name);
-        pill.textContent = `${tag} ${ev.name || 'İsimsiz'}`;
+        pill.textContent = `${getIcon(ev.name)} ${ev.name || 'İsimsiz'}`;
         dayDiv.appendChild(pill);
       }
 
@@ -917,7 +902,6 @@
     renderCalendar();
   }
 
-  // ---------- Settings ----------
   function renderSettings() {
     const list = $('settings-list');
     clearNode(list);
@@ -940,13 +924,12 @@
 
       const left = document.createElement('div');
       left.style.fontSize = '12px';
-      const tag = document.createElement('span');
-      tag.className = 'icon-box';
-      tag.style.marginRight = '8px';
-      tag.textContent = getIconTag(it.e.name);
+      const icon = document.createElement('span');
+      icon.textContent = getIcon(it.e.name);
+      icon.style.marginRight = '8px';
       const name = document.createElement('b');
       name.textContent = it.e.name || 'İsimsiz';
-      left.appendChild(tag);
+      left.appendChild(icon);
       left.appendChild(name);
 
       const inDay = document.createElement('input');
@@ -969,7 +952,6 @@
     }
   }
 
-  // ---------- Yearly report (DOM build, no innerHTML) ----------
   function safeLoadMonth(year, monthIndex0) {
     const key = `${STORAGE_PREFIX}${aylar[monthIndex0]}_${year}`;
     const raw = localStorage.getItem(key);
@@ -1031,9 +1013,7 @@
           const b = document.createElement('b');
           b.textContent = c;
           td.appendChild(b);
-        } else {
-          td.textContent = c;
-        }
+        } else td.textContent = c;
         tr.appendChild(td);
       });
       tbody.appendChild(tr);
@@ -1057,9 +1037,7 @@
         const b = document.createElement('b');
         b.textContent = c;
         td.appendChild(b);
-      } else {
-        td.textContent = c;
-      }
+      } else td.textContent = c;
       trT.appendChild(td);
     });
     tbody.appendChild(trT);
@@ -1070,10 +1048,10 @@
     showModal('yearlyModal');
   }
 
-  // ---------- Chart / PDF ----------
   function showChart() {
     showModal('chartModal');
-    const ctx = $('budgetChart').getContext('2d');
+    const canvas = $('budgetChart');
+    const ctx = canvas.getContext('2d');
     if (myChart) myChart.destroy();
 
     const y = viewDate.getFullYear();
@@ -1083,6 +1061,7 @@
     const labels = ['Ödenen Gider', 'Bekleyen Gider', 'Net (Pozitif)'];
     const data = [s.expensePaid, s.expensePending, Math.max(0, s.netForecast)];
 
+    // Boyut küçültme: responsive + maintainAspectRatio false + aspectRatio
     myChart = new Chart(ctx, {
       type: 'doughnut',
       data: {
@@ -1092,7 +1071,11 @@
           backgroundColor: ['#f43f5e', '#f59e0b', '#22c55e']
         }]
       },
-      options: { plugins: { legend: { position: 'bottom' } } }
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: { legend: { position: 'bottom' } }
+      }
     });
   }
 
@@ -1107,13 +1090,11 @@
     html2pdf().set(opt).from(element).save();
   }
 
-  // ---------- Month nav ----------
   function changeMonth(delta) {
     viewDate.setMonth(viewDate.getMonth() + delta);
     loadData();
   }
 
-  // ---------- Reset ----------
   function hardResetData() {
     const c1 = confirm('Dikkat: Yerel veriler silinecek. Emin misiniz?');
     if (!c1) return;
@@ -1128,7 +1109,6 @@
     showToast('Yerel veriler sıfırlandı', 'info');
   }
 
-  // ---------- Wire events ----------
   function bindEvents() {
     elAuthBtn.addEventListener('click', handleAuthClick);
     $('btn_backup').addEventListener('click', async () => {
@@ -1163,7 +1143,6 @@
       btn.addEventListener('click', () => closeModal(btn.getAttribute('data-close')));
     });
 
-    // Overlay click-to-close
     ['chartModal','settingsModal','yearlyModal'].forEach(id => {
       $(id).addEventListener('click', (e) => {
         if (e.target && e.target.id === id) closeModal(id);
@@ -1171,16 +1150,15 @@
     });
   }
 
-  // ---------- Init ----------
   function init() {
     loadTheme();
     bindEvents();
     loadData();
     setAuthUi(false);
+    initTokenClient();
   }
 
   window.addEventListener('load', init);
-
 })();
 </script>
 </body>
