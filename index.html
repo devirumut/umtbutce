@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Bütçe Planlama Uygulaması</title>
+    <title>Bütçe Planlama Uygulaması V3.1</title>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
@@ -53,7 +53,7 @@
         .sticky-controls { position: sticky; top: 0; background: var(--card-bg); z-index: 100; padding-bottom: 15px; border-bottom: 1px solid var(--border); margin-bottom: 15px; }
         
         .entry-row { display: grid; grid-template-columns: 35px 1.5fr 0.7fr 0.6fr 100px 30px; gap: 8px; margin-bottom: 8px; align-items: center; }
-        input, select { background: var(--primary); border: 1.5px solid var(--border); padding: 8px; border-radius: 8px; font-size: 12px; color: var(--text-main); outline: none; }
+        input, select { background: var(--primary); border: 1.5px solid var(--border); padding: 8px; border-radius: 8px; font-size: 12px; color: var(--text-main); outline: none; box-sizing: border-box; }
         
         .status-badge { display: flex; align-items: center; justify-content: center; height: 30px; border-radius: 8px; cursor: pointer; font-size: 8px; font-weight: 700; background: var(--primary); border: 1px solid var(--border); }
         .badge-paid { background: #dcfce7 !important; color: #166534 !important; }
@@ -91,7 +91,7 @@
 
 <div class="app-header">
     <div class="header-left">
-        <h1 style="font-size: 1.3rem; margin:0;">Bütçe Planlama Uygulaması</h1>
+        <h1 style="font-size: 1.3rem; margin:0;">Bütçe Planlama Uygulaması <span style="font-size:10px; opacity:0.5;">V3.1</span></h1>
         <div id="user-info" style="display:none; align-items:center; gap:8px;">
             <img id="user-img" src="" style="width:24px; height:24px; border-radius:50%;">
             <span id="user-email" style="font-size:11px; font-weight:600;"></span>
@@ -190,7 +190,7 @@
     const iconMap = { 'maaş': '💰', 'kira': '🏠', 'market': '🛒', 'fatura': '📄', 'elektrik': '⚡', 'su': '💧', 'doğalgaz': '🔥', 'internet': '🌐', 'telefon': '📱', 'akaryakıt': '⛽', 'araba': '🚗', 'altın': '🪙', 'kredi': '💳', 'yemek': '🍔' };
     function getIcon(n) { n = (n || "").toLowerCase(); for (let k in iconMap) { if (n.includes(k)) return iconMap[k]; } return '👛'; }
 
-    // --- GOOGLE DRIVE (V3 Orijinal) ---
+    // --- GOOGLE DRIVE ---
     function handleAuthClick() {
         google.accounts.oauth2.initTokenClient({
             client_id: CLIENT_ID, scope: SCOPES,
@@ -308,7 +308,12 @@
         aylar.forEach(ay => {
             const data = JSON.parse(localStorage.getItem(`butce_${ay}_2026`)) || [];
             let mGelir = 0, mGider = 0;
-            data.forEach(x => { if(x.type === 'gelir') mGelir += x.amount; else mGider += x.amount; });
+            data.forEach(x => { 
+                if(x.amount > 0) {
+                    if(x.type === 'gelir') mGelir += x.amount; 
+                    else mGider += x.amount;
+                }
+            });
             yGelir += mGelir; yGider += mGider;
             html += `<tr><td>${ay}</td><td>${mGelir.toLocaleString()} TL</td><td>${mGider.toLocaleString()} TL</td><td><b>${(mGelir-mGider).toLocaleString()} TL</b></td></tr>`;
         });
@@ -338,6 +343,22 @@
         if(['billDay', 'name'].includes(k)) renderCalendar();
     }
 
+    function removeRow(i) {
+        entries.splice(i, 1);
+        if(entries.length === 0) entries = [{ name: '', amount: 0, type: 'gider', status: 'pending', billDay: 1 }];
+        const key = `butce_${aylar[viewDate.getMonth()]}_${viewDate.getFullYear()}`;
+        localStorage.setItem(key, JSON.stringify(entries));
+        renderInitial(); calculate();
+        showToast("İşlem silindi", "info");
+    }
+
+    function hardResetData() {
+        if(confirm("TÜM verileriniz kalıcı olarak silinecek! Onaylıyor musunuz?")) {
+            Object.keys(localStorage).forEach(key => { if(key.startsWith("butce_")) localStorage.removeItem(key); });
+            location.reload();
+        }
+    }
+
     function renderCalendar() {
         const body = document.getElementById('calendar-body'); body.innerHTML = '';
         const days = new Date(viewDate.getFullYear(), viewDate.getMonth() + 1, 0).getDate();
@@ -363,10 +384,6 @@
         });
     }
 
-    function hardResetData() {
-        if(confirm("Tüm veriler silinecek! Emin misiniz?")) { localStorage.clear(); location.reload(); }
-    }
-
     function handleLogout() { location.reload(); }
     function showToast(m, type='info') {
         const t = document.createElement('div'); t.className = `toast-msg toast-${type}`;
@@ -378,7 +395,6 @@
     function closeModal(id) { document.getElementById(id).style.display = 'none'; }
     function changeMonth(s) { viewDate.setMonth(viewDate.getMonth() + s); loadData(); }
     function addRow() { entries.push({ name: '', amount: 0, type: 'gider', status: 'pending', billDay: 1 }); renderInitial(); }
-    function removeRow(i) { entries.splice(i, 1); if(entries.length===0) addRow(); renderInitial(); }
     function toggleStatus(i) { entries[i].status = entries[i].status === 'paid' ? 'pending' : 'paid'; updateItem(i, 'status', entries[i].status); renderInitial(); }
     function toggleTheme() { const t = document.body.getAttribute('data-theme') === 'dark' ? 'light' : 'dark'; document.body.setAttribute('data-theme', t); }
 
