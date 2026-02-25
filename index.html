@@ -63,6 +63,7 @@
         
         .btn-action { background: var(--accent); color: white; border: none; padding: 8px 12px; border-radius: 8px; font-weight: 600; cursor: pointer; font-size: 11px; transition: 0.2s; }
         .btn-tool { background: #f1f5f9; color: #1e293b; border: 1px solid var(--border); }
+        .btn-danger { background: #ef4444 !important; color: white !important; margin-top: 20px; }
         [data-theme="dark"] .btn-tool { background: #334155; color: #f1f5f9; }
 
         .modal-overlay { display: none; position: fixed; z-index: 2000; left: 0; top: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); backdrop-filter: blur(5px); justify-content: center; align-items: center; }
@@ -170,9 +171,17 @@
 <div id="settingsModal" class="modal-overlay">
     <div class="modal-content">
         <button class="modal-close-x" onclick="closeModal('settingsModal')">×</button>
-        <h3>Ödeme Günü Ayarları</h3>
+        <h3>Ayarlar</h3>
+        <div style="font-size: 11px; font-weight: 700; color: var(--text-dim); margin-bottom: 10px;">ÖDEME GÜNLERİ</div>
         <div id="settings-list"></div>
-        <button class="btn-action" style="width:100%; margin-top:15px;" onclick="closeModal('settingsModal')">Kapat</button>
+        
+        <hr style="border: none; border-top: 1px solid var(--border); margin: 20px 0;">
+        
+        <div style="font-size: 11px; font-weight: 700; color: var(--expense); margin-bottom: 5px;">TEHLİKELİ BÖLGE</div>
+        <p style="font-size: 11px; color: var(--text-dim); margin: 0;">Tüm aylara ait verileri ve yerel hafızayı kalıcı olarak siler.</p>
+        <button class="btn-action btn-danger" style="width:100%;" onclick="hardResetData()">Tüm Verileri Sıfırla</button>
+        
+        <button class="btn-action btn-tool" style="width:100%; margin-top:15px;" onclick="closeModal('settingsModal')">Kapat</button>
     </div>
 </div>
 
@@ -263,6 +272,7 @@
     function loadData() {
         const key = `butce_${aylar[viewDate.getMonth()]}_${viewDate.getFullYear()}`;
         const stored = localStorage.getItem(key);
+        // BAŞLANGIÇTA VARSAYILAN OLARAK BOŞ SATIR ÇIKAR
         entries = stored ? JSON.parse(stored) : [{ name: '', amount: 0, type: 'gelir', status: 'pending', billDay: 1 }];
         renderInitial();
     }
@@ -333,7 +343,11 @@
     function renderSettings() {
         const list = document.getElementById('settings-list');
         list.innerHTML = '';
-        entries.filter(e => e.type === 'gider').forEach((item) => {
+        const giderler = entries.filter(e => e.type === 'gider');
+        if(giderler.length === 0) {
+            list.innerHTML = '<div style="font-size:11px; color:var(--text-dim); padding:10px;">Gider kaydı bulunamadı.</div>';
+        }
+        giderler.forEach((item) => {
             const idx = entries.indexOf(item);
             const div = document.createElement('div');
             div.style = "display:flex; justify-content:space-between; align-items:center; padding:10px; border-bottom:1px solid var(--border);";
@@ -372,8 +386,22 @@
     }
 
     async function handleLogout() {
-        if(confirm("Tüm yerel veriler silinecek ve oturum kapatılacaktır. Devam edilsin mi?")) {
-            localStorage.clear(); location.reload();
+        if(confirm("Sadece oturum kapatılacak, verileriniz silinmeyecek. Devam edilsin mi?")) {
+            location.reload();
+        }
+    }
+
+    // --- SIFIRLAMA FONKSİYONU ---
+    function hardResetData() {
+        if(confirm("TÜM VERİLERİ SİLMEK İSTEDİĞİNİZE EMİN MİSİNİZ?\nBu işlem geri alınamaz.")) {
+            if(confirm("SON ONAY: Tüm aylara ait veriler ve bulut yedekleri (bağlıysa) silinecek. Onaylıyor musunuz?")) {
+                localStorage.clear();
+                entries = [{ name: '', amount: 0, type: 'gelir', status: 'pending', billDay: 1 }];
+                renderInitial();
+                calculate();
+                closeModal('settingsModal');
+                showToast("Tüm veriler temizlendi", "error");
+            }
         }
     }
 
@@ -392,7 +420,6 @@
     function changeMonth(s) { viewDate.setMonth(viewDate.getMonth() + s); loadData(); }
     function addRow() { entries.push({ name: '', amount: 0, type: 'gider', status: 'pending', billDay: 1 }); renderInitial(); }
     
-    // GÜNCELLENEN AKICI SİLME FONKSİYONU
     function removeRow(i) {
         if (entries.length > 1) {
             entries.splice(i, 1);
@@ -400,10 +427,8 @@
             entries[0] = { name: '', amount: 0, type: 'gider', status: 'pending', billDay: 1 };
             showToast("Liste temizlendi", "info");
         }
-        
         const key = `butce_${aylar[viewDate.getMonth()]}_${viewDate.getFullYear()}`;
         localStorage.setItem(key, JSON.stringify(entries));
-        
         renderInitial();
         calculate();
     }
