@@ -164,10 +164,10 @@
     }
 
     .icon-box{
-      width:34px; height:32px; display:flex; align-items:center; justify-content:center;
-      border:1px solid var(--border); border-radius:10px; background:var(--primary);
-      font-size:10px; user-select:none; font-weight:900; color:var(--text-dim);
-    }
+  width:34px; height:32px; display:flex; align-items:center; justify-content:center;
+  border:1px solid var(--border); border-radius:10px; background:var(--primary);
+  font-size:16px; user-select:none;
+}
 
     .badge{
       display:flex; align-items:center; justify-content:center; height:32px; border-radius:10px;
@@ -515,16 +515,17 @@
       const AUTO_BACKUP_DEBOUNCE_MS = 30000;
 
       const iconMap = [
-        { k:'maaş', v:'MS' }, { k:'kira', v:'KR' }, { k:'market', v:'MK' }, { k:'fatura', v:'FT' },
-        { k:'elektrik', v:'EL' }, { k:'su', v:'SU' }, { k:'doğalgaz', v:'DG' }, { k:'internet', v:'IN' },
-        { k:'telefon', v:'TL' }, { k:'akaryakıt', v:'AK' }, { k:'araba', v:'AR' }, { k:'altın', v:'AU' },
-        { k:'kredi', v:'KD' }, { k:'yemek', v:'YM' }
-      ];
-      function getIcon(name) {
-        const n = String(name || '').toLowerCase();
-        for (const it of iconMap) if (n.includes(it.k)) return it.v;
-        return '--';
-      }
+  { k:'maaş', v:'💰' }, { k:'kira', v:'🏠' }, { k:'market', v:'🛒' }, { k:'fatura', v:'📄' },
+  { k:'elektrik', v:'⚡' }, { k:'su', v:'💧' }, { k:'doğalgaz', v:'🔥' }, { k:'internet', v:'🌐' },
+  { k:'telefon', v:'📱' }, { k:'akaryakıt', v:'⛽' }, { k:'araba', v:'🚗' }, { k:'altın', v:'🪙' },
+  { k:'kredi', v:'💳' }, { k:'yemek', v:'🍔' }
+];
+
+function getIcon(name) {
+  const n = String(name || '').toLowerCase();
+  for (const it of iconMap) if (n.includes(it.k)) return it.v;
+  return '👛';
+}
 
       const $ = (id) => document.getElementById(id);
 
@@ -1549,3 +1550,4 @@
   </script>
 </body>
 </html>
+
