@@ -44,7 +44,8 @@
     }
     *{ box-sizing:border-box; }
     body{
-      font-family:'Poppins',sans-serif; background:var(--primary); color:var(--text-main);
+      font-family:'Poppins', system-ui, -apple-system, "Segoe UI", Roboto, Arial, "Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji", sans-serif;
+      background:var(--primary); color:var(--text-main);
       margin:0; padding:10px; transition:.2s;
       display:flex; flex-direction:column; align-items:center; min-height:100vh;
     }
@@ -163,11 +164,13 @@
       gap:8px; align-items:center; margin-bottom:8px;
     }
 
+    /* FIX: emoji ikonlar görünür */
     .icon-box{
-  width:34px; height:32px; display:flex; align-items:center; justify-content:center;
-  border:1px solid var(--border); border-radius:10px; background:var(--primary);
-  font-size:16px; user-select:none;
-}
+      width:34px; height:32px; display:flex; align-items:center; justify-content:center;
+      border:1px solid var(--border); border-radius:10px; background:var(--primary);
+      font-size:16px; user-select:none;
+      line-height:1;
+    }
 
     .badge{
       display:flex; align-items:center; justify-content:center; height:32px; border-radius:10px;
@@ -514,18 +517,18 @@
       let autoBackupTimer = null;
       const AUTO_BACKUP_DEBOUNCE_MS = 30000;
 
+      /* FIX: emoji iconMap + default emoji */
       const iconMap = [
-  { k:'maaş', v:'💰' }, { k:'kira', v:'🏠' }, { k:'market', v:'🛒' }, { k:'fatura', v:'📄' },
-  { k:'elektrik', v:'⚡' }, { k:'su', v:'💧' }, { k:'doğalgaz', v:'🔥' }, { k:'internet', v:'🌐' },
-  { k:'telefon', v:'📱' }, { k:'akaryakıt', v:'⛽' }, { k:'araba', v:'🚗' }, { k:'altın', v:'🪙' },
-  { k:'kredi', v:'💳' }, { k:'yemek', v:'🍔' }
-];
-
-function getIcon(name) {
-  const n = String(name || '').toLowerCase();
-  for (const it of iconMap) if (n.includes(it.k)) return it.v;
-  return '👛';
-}
+        { k:'maaş', v:'💰' }, { k:'kira', v:'🏠' }, { k:'market', v:'🛒' }, { k:'fatura', v:'📄' },
+        { k:'elektrik', v:'⚡' }, { k:'su', v:'💧' }, { k:'doğalgaz', v:'🔥' }, { k:'internet', v:'🌐' },
+        { k:'telefon', v:'📱' }, { k:'yakıt', v:'⛽' }, { k:'akaryakıt', v:'⛽' }, { k:'araba', v:'🚗' },
+        { k:'altın', v:'🪙' }, { k:'kredi', v:'💳' }, { k:'yemek', v:'🍔' }
+      ];
+      function getIcon(name) {
+        const n = String(name || '').toLowerCase();
+        for (const it of iconMap) if (n.includes(it.k)) return it.v;
+        return '👛';
+      }
 
       const $ = (id) => document.getElementById(id);
 
@@ -1550,4 +1553,3 @@ function getIcon(name) {
   </script>
 </body>
 </html>
-
