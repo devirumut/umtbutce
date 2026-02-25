@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Bütçe Planlama Uygulaması V4.3</title>
+  <title>Bütçe Planlama Uygulaması V4.4</title>
 
   <meta http-equiv="Content-Security-Policy" content="
     default-src 'self';
@@ -169,6 +169,9 @@
       font-size: 11px;
       transition: 0.2s;
       white-space: nowrap;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
     }
     .btn-tool {
       background: var(--header-bg);
@@ -274,7 +277,7 @@
     <div class="header-left">
       <h1 style="font-size: 1.3rem; margin:0;">
         Bütçe Planlama Uygulaması
-        <span style="font-size:10px; opacity:0.5;">V4.3</span>
+        <span style="font-size:10px; opacity:0.5;">V4.4</span>
       </h1>
       <div id="user-info" style="display:none; align-items:center; gap:8px;">
         <img id="user-img" alt="user" src="" style="width:24px; height:24px; border-radius:50%;">
@@ -287,10 +290,15 @@
         <img src="https://www.gstatic.com/images/branding/product/1x/gsa_512dp.png" alt="Google">
         Google ile Bağlan
       </button>
+
       <div id="auth_controls" style="display:none; gap:8px;">
+        <span id="session_badge" class="btn-action btn-tool" style="padding:8px 10px; display:none;">
+          ⏳ <span id="session_countdown">15:00</span>
+        </span>
         <button id="btn_backup" class="btn-action" type="button" style="background:#22c55e;">☁️ Buluta Yedekle</button>
         <button id="btn_logout" class="btn-action" type="button" style="background:#64748b;">🔒 Güvenli Çıkış</button>
       </div>
+
       <button id="btn_theme" type="button" class="btn-action btn-tool">🌓 Tema</button>
     </div>
   </div>
@@ -428,7 +436,7 @@
   const STORAGE_PREFIX = 'butce_';
   const THEME_KEY = 'budget_theme_v1';
 
-  // 15 dk oturum (inactivity timeout)
+  // 15 dk oturum (inactivity)
   const SESSION_TIMEOUT_MS = 15 * 60 * 1000;
 
   const aylar = ["OCAK","ŞUBAT","MART","NİSAN","MAYIS","HAZİRAN","TEMMUZ","AĞUSTOS","EYLÜL","EKİM","KASIM","ARALIK"];
@@ -444,6 +452,8 @@
   // Oturum zamanlayıcıları
   let sessionTimer = null;
   let sessionActive = false;
+  let sessionExpireAt = 0;
+  let countdownTimer = null;
 
   const iconMap = [
     { k: 'maaş', v: '💰' }, { k: 'kira', v: '🏠' }, { k: 'market', v: '🛒' }, { k: 'fatura', v: '📄' },
@@ -691,25 +701,64 @@
     showToast('Bulut eşitlendi', 'info');
   }
 
-  // --- 15 DK OTURUM ---
+  // --- 15 DK OTURUM + GERİ SAYIM ---
+  function formatMMSS(ms) {
+    const t = Math.max(0, Math.ceil(ms / 1000));
+    const mm = String(Math.floor(t / 60)).padStart(2, '0');
+    const ss = String(t % 60).padStart(2, '0');
+    return `${mm}:${ss}`;
+  }
+
+  function setCountdownVisible(v) {
+    const b = $('session_badge');
+    if (!b) return;
+    b.style.display = v ? 'inline-flex' : 'none';
+  }
+
+  function renderCountdown() {
+    const el = $('session_countdown');
+    if (!el) return;
+    const left = sessionExpireAt - Date.now();
+    el.textContent = formatMMSS(left);
+  }
+
+  function stopCountdown() {
+    if (countdownTimer) { clearInterval(countdownTimer); countdownTimer = null; }
+    setCountdownVisible(false);
+  }
+
+  function startCountdown() {
+    setCountdownVisible(true);
+    renderCountdown();
+    if (countdownTimer) clearInterval(countdownTimer);
+    countdownTimer = setInterval(renderCountdown, 1000);
+  }
+
   function clearSessionTimer() {
     if (sessionTimer) { clearTimeout(sessionTimer); sessionTimer = null; }
   }
+
   async function expireSession() {
     if (!sessionActive) return;
     sessionActive = false;
     clearSessionTimer();
+    renderCountdown();
     showToast('Oturum süresi doldu', 'error');
     await handleLogoutWithPrompt(true);
   }
+
   function armSessionTimer() {
     clearSessionTimer();
+    sessionExpireAt = Date.now() + SESSION_TIMEOUT_MS;
+    startCountdown();
     sessionTimer = setTimeout(expireSession, SESSION_TIMEOUT_MS);
   }
+
   function touchSession() {
     if (!sessionActive) return;
     armSessionTimer();
   }
+
   function bindSessionActivity() {
     const events = ['click','keydown','mousemove','touchstart','scroll'];
     events.forEach(ev => window.addEventListener(ev, touchSession, { passive: true }));
@@ -723,6 +772,7 @@
         if (!res || res.error) { showToast('Giriş hatası', 'error'); return; }
         accessToken = res.access_token;
         setAuthUi(true);
+
         sessionActive = true;
         armSessionTimer();
 
@@ -743,7 +793,6 @@
   }
 
   async function handleLogoutWithPrompt(isAuto = false) {
-    // isAuto=true => süre doldu; aynı prompt
     const askText = isAuto
       ? 'Oturum süresi doldu. Çıkmadan önce buluta kaydedilsin mi?'
       : 'Güvenli çıkış yapılacak. Çıkmadan önce buluta kaydedilsin mi?';
@@ -756,13 +805,13 @@
       catch (e) { showToast(String(e && e.message ? e.message : e), 'error'); }
     }
 
-    // revoke + reload
     const token = accessToken;
     accessToken = null;
     driveFileId = null;
 
     sessionActive = false;
     clearSessionTimer();
+    stopCountdown();
 
     if (!token) { location.reload(); return; }
     try { google.accounts.oauth2.revoke(token, () => location.reload()); }
@@ -1211,6 +1260,7 @@
     bindSessionActivity();
     loadData();
     setAuthUi(false);
+    setCountdownVisible(false);
     initTokenClient();
   }
 
