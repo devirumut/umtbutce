@@ -38,7 +38,7 @@
       --text-main:#f1f5f9; --text-dim:#94a3b8; --border:#334155; --header-bg:#334155;
     }
 
-    /* Ikon Ayarı */
+    /* Ikon Ayarları */
     .mi {
       font-family: 'Material Symbols Rounded';
       font-weight: normal; font-style: normal; font-size: 20px;
@@ -55,9 +55,7 @@
       box-shadow:var(--shadow); border:1px solid var(--border);
     }
 
-    .header-right{ display:flex; align-items:center; gap:12px; }
-
-    /* Oturum Rozeti */
+    /* Oturum Durum Göstergesi */
     .session-badge {
       display: flex; align-items: center; gap: 8px; background: var(--header-bg);
       padding: 6px 12px; border-radius: 12px; border: 1px solid var(--border);
@@ -74,10 +72,10 @@
     .btn-danger{ background:var(--expense) !important; }
     .btn-green{ background:var(--income) !important; }
 
-    .main-layout{ width:100%; max-width:1750px; display:grid; grid-template-columns:300px 1fr; gap:20px; }
+    /* LAYOUT: SOL 650px SABİT TUTULDU */
+    .main-layout{ width:100%; max-width:1750px; display:grid; grid-template-columns:650px 1fr; gap:20px; }
     
-    /* Sol Paneli Sabit Tutuyoruz */
-    .left-panel{ display:flex; flex-direction:column; gap:10px; width: 300px; }
+    .left-panel{ display:flex; flex-direction:column; gap:10px; }
     .widget-card{ background:var(--card-bg); border-radius:12px; border:1px solid var(--border); overflow:hidden; }
     .widget-header{ background:var(--header-bg); padding:8px 15px; font-size:.7rem; font-weight:800; color:var(--text-dim); }
     .crop-box{ height:42px; overflow:hidden; position:relative; background:#fff; }
@@ -89,8 +87,7 @@
 
     .budget-card{ background:var(--card-bg); padding:20px; border-radius:20px; border:1px solid var(--border); box-shadow:var(--shadow); }
     
-    .entry-row { display: grid; grid-template-columns: 45px 1.2fr .6fr .5fr .7fr .4fr .6fr .6fr 45px; gap: 8px; align-items: center; margin-bottom: 8px; }
-    .icon-box { width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; border-radius: 10px; background: var(--primary); border: 1px solid var(--border); }
+    .entry-head { display: grid; grid-template-columns: 34px 1.2fr .65fr .65fr .85fr .8fr .6fr .55fr 30px; gap: 8px; padding: 10px; color: var(--text-dim); font-size: 10px; font-weight: 800; }
   </style>
 </head>
 <body>
@@ -104,14 +101,14 @@
       </div>
     </div>
 
-    <div class="header-right">
+    <div class="header-right" style="display:flex; gap:10px; align-items:center;">
       <div id="auth_controls" class="hidden" style="display:flex; align-items:center; gap:10px;">
         <div class="session-badge active" id="session_badge">
           <span class="status-dot"></span>
           <span id="session_countdown">15:00</span>
-          <span id="session_state_text">ACTIVE</span>
+          <span id="session_state_text">AKTİF</span>
         </div>
-        <button id="btn_backup" class="btn btn-green"><span class="mi">cloud_upload</span> Yedekle</button>
+        <button id="btn_backup" class="btn btn-green"><span class="mi">cloud_sync</span> Yedekle</button>
         <button id="btn_logout" class="btn btn-danger"><span class="mi">logout</span> Çıkış</button>
       </div>
       <button id="auth_btn" class="btn"><span class="mi">account_circle</span> Google ile Bağlan</button>
@@ -137,19 +134,31 @@
 
     <div class="budget-card">
       <div style="display:flex; justify-content:space-between; margin-bottom:20px;">
-        <div style="display:flex; align-items:center; gap:10px;">
+        <div class="month-nav" style="display:flex; align-items:center; gap:10px;">
           <button id="btn_prev" class="btn btn-tool"><span class="mi">arrow_back_ios</span></button>
           <span id="display-month" style="font-weight:900; font-size:1.1rem; min-width:140px; text-align:center;"></span>
           <button id="btn_next" class="btn btn-tool"><span class="mi">arrow_forward_ios</span></button>
         </div>
-        <div style="display:flex; gap:8px;">
-          <button id="btn_search" class="btn btn-tool"><span class="mi">search</span> Ara</button>
-          <button id="btn_chart" class="btn btn-tool"><span class="mi">bar_chart</span> Analiz</button>
-          <button id="btn_pdf" class="btn btn-tool"><span class="mi">picture_as_pdf</span> PDF</button>
+        <div class="toolbar" style="display:flex; gap:8px;">
+          <button id="btn_search" class="btn btn-tool"><span class="mi">search</span></button>
+          <button id="btn_chart" class="btn btn-tool"><span class="mi">analytics</span></button>
+          <button id="btn_pdf" class="btn btn-tool"><span class="mi">picture_as_pdf</span></button>
           <button id="btn_settings" class="btn btn-tool"><span class="mi">settings</span></button>
         </div>
       </div>
 
+      <div class="entry-head">
+        <div><span class="mi" style="font-size:14px;">label</span></div>
+        <div>İŞLEM</div>
+        <div>TUTAR</div>
+        <div>TÜR</div>
+        <div>KATEGORİ</div>
+        <div>GÜN</div>
+        <div>TEKRAR</div>
+        <div>DURUM</div>
+        <div></div>
+      </div>
+      
       <div id="entries-container">
         </div>
 
@@ -160,7 +169,7 @@
   </div>
 
   <script>
-    // JS tarafında "idle" yazısını ve ikonları yönetmek için şu güncellemeyi yapmalısın:
+    // JS kısmında 'idle' durumu yönetimi için bu fonksiyonu kullanabilirsin:
     function updateSessionUI(state) {
       const badge = document.getElementById('session_badge');
       const text = document.getElementById('session_state_text');
