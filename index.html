@@ -1,431 +1,1187 @@
 <!DOCTYPE html>
 <html lang="tr">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Bütçe Planlama Uygulaması V3.1</title>
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
-    <script src="https://accounts.google.com/gsi/client" async defer></script>
-    <style>
-        :root {
-            --primary: #f8fafc; --card-bg: #ffffff; --accent: #4f46e5;
-            --income: #22c55e; --expense: #f43f5e; --pending: #f59e0b;
-            --text-main: #1e293b; --text-dim: #64748b; --border: #e2e8f0;
-        }
-        [data-theme="dark"] {
-            --primary: #0f172a; --card-bg: #1e293b; --accent: #818cf8;
-            --text-main: #f1f5f9; --text-dim: #94a3b8; --border: #334155;
-        }
-        body {
-            font-family: 'Poppins', sans-serif; background-color: var(--primary);
-            color: var(--text-main); margin: 0; padding: 10px; transition: all 0.3s ease;
-            display: flex; flex-direction: column; align-items: center; min-height: 100vh;
-        }
-        .app-header {
-            width: 100%; max-width: 1750px; display: flex; justify-content: space-between; align-items: center;
-            padding: 10px 25px; background: var(--card-bg); border-radius: 15px; 
-            margin-bottom: 15px; box-shadow: 0 4px 20px rgba(0,0,0,0.03); border: 1px solid var(--border); box-sizing: border-box;
-        }
-        .header-left, .header-right { display: flex; align-items: center; gap: 12px; }
-        
-        .google-btn {
-            display: flex; align-items: center; gap: 10px; background: white; color: #3c4043;
-            border: 1px solid #dadce0; padding: 8px 16px; border-radius: 6px; font-weight: 500;
-            font-size: 14px; cursor: pointer; transition: 0.2s; box-shadow: 0 1px 3px rgba(0,0,0,0.08);
-        }
-        .google-btn:hover { background: #f8f9fa; box-shadow: 0 1px 3px 1px rgba(0,0,0,0.15); }
-        .google-btn img { width: 18px; height: 18px; }
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Bütçe Planlama Uygulaması V4.0</title>
 
-        .main-layout { display: grid; grid-template-columns: 650px 1fr; gap: 20px; width: 100%; max-width: 1750px; margin-bottom: 15px; }
-        .left-panel { display: flex; flex-direction: column; gap: 10px; }
-        .widget-card { background: var(--card-bg); border-radius: 12px; border: 1px solid var(--border); overflow: hidden; }
-        .widget-header { background: #f1f5f9; padding: 6px 15px; font-size: 0.7rem; font-weight: 600; color: #64748b; text-transform: uppercase; }
-        [data-theme="dark"] .widget-header { background: #334155; color: #cbd5e1; }
-        
-        .crop-box { height: 42px; overflow: hidden; position: relative; background: #fff; }
-        .crop-box iframe { border: none; width: 2400px; height: 5000px; position: absolute; transform: scale(0.63); transform-origin: 0 0; }
-        #frame-gram { top: -260px; left: -25px; } #frame-ceyrek { top: -182px; left: -775px; }
-        .currency-box { height: 78px; } #frame-doviz { top: -184px; left: -25px; }
-        
-        .budget-card { background: var(--card-bg); padding: 20px 30px; border-radius: 20px; border: 1px solid var(--border); box-shadow: 0 10px 40px rgba(0,0,0,0.04); position: relative; }
-        .sticky-controls { position: sticky; top: 0; background: var(--card-bg); z-index: 100; padding-bottom: 15px; border-bottom: 1px solid var(--border); margin-bottom: 15px; }
-        
-        .entry-row { display: grid; grid-template-columns: 35px 1.5fr 0.7fr 0.6fr 100px 30px; gap: 8px; margin-bottom: 8px; align-items: center; }
-        input, select { background: var(--primary); border: 1.5px solid var(--border); padding: 8px; border-radius: 8px; font-size: 12px; color: var(--text-main); outline: none; box-sizing: border-box; }
-        
-        .status-badge { display: flex; align-items: center; justify-content: center; height: 30px; border-radius: 8px; cursor: pointer; font-size: 8px; font-weight: 700; background: var(--primary); border: 1px solid var(--border); }
-        .badge-paid { background: #dcfce7 !important; color: #166534 !important; }
-        .badge-pending { background: #fef3c7 !important; color: #92400e !important; }
-        .badge-received { background: #e0f2fe !important; color: #075985 !important; }
-        .badge-awaiting { background: #f1f5f9 !important; color: #475569 !important; }
-        
-        .btn-action { background: var(--accent); color: white; border: none; padding: 8px 12px; border-radius: 8px; font-weight: 600; cursor: pointer; font-size: 11px; transition: 0.2s; }
-        .btn-tool { background: #f1f5f9; color: #1e293b; border: 1px solid var(--border); }
-        .btn-danger { background: #ef4444 !important; color: white !important; margin-top: 5px; }
+  <!-- CSP: tek dosya + CDN + Google GIS (inline script/style nedeniyle unsafe-inline kullanılıyor) -->
+  <meta http-equiv="Content-Security-Policy" content="
+    default-src 'self';
+    script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://accounts.google.com;
+    style-src 'self' 'unsafe-inline' https://fonts.googleapis.com;
+    font-src https://fonts.gstatic.com;
+    img-src 'self' data: https://www.gstatic.com https://lh3.googleusercontent.com;
+    connect-src https://www.googleapis.com;
+    frame-src https://www.altinkaynak.com;
+    base-uri 'self';
+    form-action 'self';
+  " />
 
-        .modal-overlay { display: none; position: fixed; z-index: 2000; left: 0; top: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); backdrop-filter: blur(5px); justify-content: center; align-items: center; }
-        .modal-content { background: var(--card-bg); padding: 25px; border-radius: 20px; border: 1px solid var(--border); width: 90%; max-width: 600px; max-height: 85vh; overflow-y: auto; position: relative; }
-        .modal-close-x { position: absolute; top: 15px; right: 15px; font-size: 24px; cursor: pointer; color: var(--text-dim); border: none; background: none; }
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+  <script src="https://accounts.google.com/gsi/client" async defer></script>
 
-        .toast-msg { position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%) translateY(100px); padding: 14px 28px; border-radius: 12px; color: white; font-weight: 500; font-size: 13px; z-index: 9999; transition: 0.4s; display: flex; align-items: center; gap: 10px; }
-        .toast-msg.show { transform: translateX(-50%) translateY(0); }
-        .toast-info { background: #4f46e5; }
-        .toast-success { background: #10b981; }
-        .toast-error { background: #ef4444; }
+  <style>
+    :root {
+      --primary: #f8fafc; --card-bg: #ffffff; --accent: #4f46e5;
+      --income: #22c55e; --expense: #f43f5e; --pending: #f59e0b;
+      --text-main: #1e293b; --text-dim: #64748b; --border: #e2e8f0;
+      --header-bg: #f1f5f9;
+    }
+    [data-theme="dark"] {
+      --primary: #0f172a; --card-bg: #1e293b; --accent: #818cf8;
+      --text-main: #f1f5f9; --text-dim: #94a3b8; --border: #334155;
+      --header-bg: #334155;
+    }
+    body {
+      font-family: 'Poppins', sans-serif;
+      background-color: var(--primary);
+      color: var(--text-main);
+      margin: 0; padding: 10px;
+      transition: all 0.3s ease;
+      display: flex; flex-direction: column; align-items: center;
+      min-height: 100vh;
+    }
+    .app-header {
+      width: 100%; max-width: 1750px;
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 10px 25px;
+      background: var(--card-bg);
+      border-radius: 15px;
+      margin-bottom: 15px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.03);
+      border: 1px solid var(--border);
+      box-sizing: border-box;
+    }
+    .header-left, .header-right { display: flex; align-items: center; gap: 12px; }
 
-        .calendar-section { width: 100%; max-width: 1750px; background: var(--card-bg); padding: 15px 25px; border-radius: 20px; border: 1px solid var(--border); margin-top: 15px; box-sizing: border-box; }
-        .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; margin-top: 10px; }
-        .cal-day { background: var(--primary); border: 1px solid var(--border); min-height: 60px; border-radius: 10px; padding: 5px; }
-        
-        .summary-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-top: 20px; }
-        .stat-item { padding: 12px; border-radius: 14px; background: var(--primary); border: 1px solid var(--border); }
-        table { width: 100%; border-collapse: collapse; margin-top: 10px; }
-        th, td { padding: 10px; text-align: left; border-bottom: 1px solid var(--border); font-size: 12px; }
+    .google-btn {
+      display: flex; align-items: center; gap: 10px;
+      background: white; color: #3c4043;
+      border: 1px solid #dadce0;
+      padding: 8px 16px; border-radius: 6px;
+      font-weight: 500;
+      font-size: 14px;
+      cursor: pointer;
+      transition: 0.2s;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+    }
+    .google-btn:hover { background: #f8f9fa; box-shadow: 0 1px 3px 1px rgba(0,0,0,0.15); }
+    .google-btn img { width: 18px; height: 18px; }
 
-        .footer-copyright { margin-top: 20px; margin-bottom: 20px; font-size: 10px; color: var(--text-dim); opacity: 0.6; }
-    </style>
+    .main-layout {
+      display: grid;
+      grid-template-columns: 650px 1fr;
+      gap: 20px;
+      width: 100%;
+      max-width: 1750px;
+      margin-bottom: 15px;
+    }
+    .left-panel { display: flex; flex-direction: column; gap: 10px; }
+    .widget-card { background: var(--card-bg); border-radius: 12px; border: 1px solid var(--border); overflow: hidden; }
+    .widget-header {
+      background: var(--header-bg);
+      padding: 6px 15px;
+      font-size: 0.7rem;
+      font-weight: 600;
+      color: var(--text-dim);
+      text-transform: uppercase;
+    }
+
+    .crop-box { height: 42px; overflow: hidden; position: relative; background: #fff; }
+    .crop-box iframe {
+      border: none;
+      width: 2400px; height: 5000px;
+      position: absolute;
+      transform: scale(0.63);
+      transform-origin: 0 0;
+    }
+    #frame-gram { top: -260px; left: -25px; }
+    #frame-ceyrek { top: -182px; left: -775px; }
+    .currency-box { height: 78px; }
+    #frame-doviz { top: -184px; left: -25px; }
+
+    .budget-card {
+      background: var(--card-bg);
+      padding: 20px 30px;
+      border-radius: 20px;
+      border: 1px solid var(--border);
+      box-shadow: 0 10px 40px rgba(0,0,0,0.04);
+      position: relative;
+    }
+    .sticky-controls {
+      position: sticky;
+      top: 0;
+      background: var(--card-bg);
+      z-index: 100;
+      padding-bottom: 15px;
+      border-bottom: 1px solid var(--border);
+      margin-bottom: 15px;
+    }
+
+    .entry-row {
+      display: grid;
+      grid-template-columns: 35px 1.5fr 0.7fr 0.6fr 100px 30px;
+      gap: 8px;
+      margin-bottom: 8px;
+      align-items: center;
+    }
+    input, select {
+      background: var(--primary);
+      border: 1.5px solid var(--border);
+      padding: 8px;
+      border-radius: 8px;
+      font-size: 12px;
+      color: var(--text-main);
+      outline: none;
+      box-sizing: border-box;
+    }
+
+    .status-badge {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      height: 30px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 9px;
+      font-weight: 700;
+      background: var(--primary);
+      border: 1px solid var(--border);
+      user-select: none;
+    }
+    .badge-paid { background: #dcfce7 !important; color: #166534 !important; }
+    .badge-pending { background: #fef3c7 !important; color: #92400e !important; }
+    .badge-received { background: #e0f2fe !important; color: #075985 !important; }
+    .badge-awaiting { background: #f1f5f9 !important; color: #475569 !important; }
+    [data-theme="dark"] .badge-awaiting { background: #0f172a !important; color: #cbd5e1 !important; }
+
+    .btn-action {
+      background: var(--accent);
+      color: white;
+      border: none;
+      padding: 8px 12px;
+      border-radius: 8px;
+      font-weight: 600;
+      cursor: pointer;
+      font-size: 11px;
+      transition: 0.2s;
+      white-space: nowrap;
+    }
+    .btn-tool {
+      background: var(--header-bg);
+      color: var(--text-main);
+      border: 1px solid var(--border);
+    }
+    .btn-danger { background: #ef4444 !important; color: white !important; margin-top: 5px; }
+
+    .modal-overlay {
+      display: none;
+      position: fixed;
+      z-index: 2000;
+      left: 0; top: 0;
+      width: 100%; height: 100%;
+      background: rgba(0,0,0,0.6);
+      backdrop-filter: blur(5px);
+      justify-content: center;
+      align-items: center;
+    }
+    .modal-content {
+      background: var(--card-bg);
+      padding: 25px;
+      border-radius: 20px;
+      border: 1px solid var(--border);
+      width: 90%;
+      max-width: 700px;
+      max-height: 85vh;
+      overflow-y: auto;
+      position: relative;
+    }
+    .modal-close-x {
+      position: absolute;
+      top: 15px; right: 15px;
+      font-size: 24px;
+      cursor: pointer;
+      color: var(--text-dim);
+      border: none;
+      background: none;
+    }
+
+    .toast-msg {
+      position: fixed;
+      bottom: 30px;
+      left: 50%;
+      transform: translateX(-50%) translateY(100px);
+      padding: 14px 28px;
+      border-radius: 12px;
+      color: white;
+      font-weight: 500;
+      font-size: 13px;
+      z-index: 9999;
+      transition: 0.4s;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .toast-msg.show { transform: translateX(-50%) translateY(0); }
+    .toast-info { background: #4f46e5; }
+    .toast-success { background: #10b981; }
+    .toast-error { background: #ef4444; }
+
+    .calendar-section {
+      width: 100%;
+      max-width: 1750px;
+      background: var(--card-bg);
+      padding: 15px 25px;
+      border-radius: 20px;
+      border: 1px solid var(--border);
+      margin-top: 15px;
+      box-sizing: border-box;
+    }
+    .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; margin-top: 10px; }
+    .cal-day { background: var(--primary); border: 1px solid var(--border); min-height: 60px; border-radius: 10px; padding: 5px; }
+    .cal-day .day-num { font-size: 10px; font-weight: 700; }
+
+    .summary-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-top: 20px; }
+    .stat-item { padding: 12px; border-radius: 14px; background: var(--primary); border: 1px solid var(--border); }
+    table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+    th, td { padding: 10px; text-align: left; border-bottom: 1px solid var(--border); font-size: 12px; }
+
+    .footer-copyright { margin-top: 20px; margin-bottom: 20px; font-size: 10px; color: var(--text-dim); opacity: 0.6; }
+    .muted { color: var(--text-dim); font-size: 11px; font-weight: 600; }
+    .icon-box { font-size: 11px; font-weight: 800; letter-spacing: 0.5px; color: var(--text-dim); }
+  </style>
 </head>
+
 <body>
-
-<div class="app-header">
+  <div class="app-header">
     <div class="header-left">
-        <h1 style="font-size: 1.3rem; margin:0;">Bütçe Planlama Uygulaması <span style="font-size:10px; opacity:0.5;">V3.1</span></h1>
-        <div id="user-info" style="display:none; align-items:center; gap:8px;">
-            <img id="user-img" src="" style="width:24px; height:24px; border-radius:50%;">
-            <span id="user-email" style="font-size:11px; font-weight:600;"></span>
-        </div>
+      <h1 style="font-size: 1.3rem; margin:0;">
+        Bütçe Planlama Uygulaması
+        <span style="font-size:10px; opacity:0.5;">V4.0</span>
+      </h1>
+      <div id="user-info" style="display:none; align-items:center; gap:8px;">
+        <img id="user-img" alt="user" src="" style="width:24px; height:24px; border-radius:50%;">
+        <span id="user-email" style="font-size:11px; font-weight:600;"></span>
+      </div>
     </div>
-    <div class="header-right">
-        <button id="auth_btn" class="google-btn" onclick="handleAuthClick()">
-            <img src="https://www.gstatic.com/images/branding/product/1x/gsa_512dp.png" alt="Google">
-            Google ile Bağlan
-        </button>
-        <div id="auth_controls" style="display:none; gap:8px;">
-            <button class="btn-action" onclick="syncToDrive()" style="background:#22c55e;">Buluta Yedekle</button>
-            <button class="btn-action" onclick="handleLogout()" style="background:#64748b;">Güvenli Çıkış</button>
-        </div>
-        <button onclick="toggleTheme()" class="btn-action btn-tool">🌓</button>
-    </div>
-</div>
 
-<div class="main-layout">
+    <div class="header-right">
+      <button id="auth_btn" class="google-btn" type="button">
+        <img src="https://www.gstatic.com/images/branding/product/1x/gsa_512dp.png" alt="Google">
+        Google ile Bağlan
+      </button>
+      <div id="auth_controls" style="display:none; gap:8px;">
+        <button id="btn_backup" class="btn-action" type="button" style="background:#22c55e;">Buluta Yedekle</button>
+        <button id="btn_logout" class="btn-action" type="button" style="background:#64748b;">Güvenli Çıkış</button>
+      </div>
+      <button id="btn_theme" type="button" class="btn-action btn-tool">Tema</button>
+    </div>
+  </div>
+
+  <div class="main-layout">
     <div class="left-panel">
-        <div class="widget-card"><div class="widget-header">24 AYAR GRAM</div><div class="crop-box"><iframe src="https://www.altinkaynak.com/canli-kurlar/altin" id="frame-gram"></iframe></div></div>
-        <div class="widget-card"><div class="widget-header">ÇEYREK ALTIN</div><div class="crop-box"><iframe src="https://www.altinkaynak.com/canli-kurlar/altin" id="frame-ceyrek"></iframe></div></div>
-        <div class="widget-card"><div class="widget-header">DOLAR & EURO</div><div class="crop-box currency-box"><iframe src="https://www.altinkaynak.com/canli-kurlar/doviz" id="frame-doviz"></iframe></div></div>
+      <div class="widget-card">
+        <div class="widget-header">24 AYAR GRAM</div>
+        <div class="crop-box">
+          <iframe
+            src="https://www.altinkaynak.com/canli-kurlar/altin"
+            id="frame-gram"
+            loading="lazy"
+            referrerpolicy="no-referrer"
+            sandbox="allow-scripts allow-same-origin"></iframe>
+        </div>
+      </div>
+
+      <div class="widget-card">
+        <div class="widget-header">ÇEYREK ALTIN</div>
+        <div class="crop-box">
+          <iframe
+            src="https://www.altinkaynak.com/canli-kurlar/altin"
+            id="frame-ceyrek"
+            loading="lazy"
+            referrerpolicy="no-referrer"
+            sandbox="allow-scripts allow-same-origin"></iframe>
+        </div>
+      </div>
+
+      <div class="widget-card">
+        <div class="widget-header">DOLAR & EURO</div>
+        <div class="crop-box currency-box">
+          <iframe
+            src="https://www.altinkaynak.com/canli-kurlar/doviz"
+            id="frame-doviz"
+            loading="lazy"
+            referrerpolicy="no-referrer"
+            sandbox="allow-scripts allow-same-origin"></iframe>
+        </div>
+      </div>
     </div>
 
     <div class="budget-card">
-        <div class="sticky-controls">
-            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
-                <div style="display:flex; align-items:center; gap:8px;">
-                    <button onclick="changeMonth(-1)" class="btn-action">❮</button>
-                    <span id="display-month" style="font-weight:700; min-width:120px; text-align:center;"></span>
-                    <button onclick="changeMonth(1)" class="btn-action">❯</button>
-                </div>
-                <div style="display:flex; gap:8px;">
-                    <button class="btn-action btn-tool" onclick="generateYearlyReport()">📅 Yıllık Analiz</button>
-                    <button class="btn-action btn-tool" onclick="showChart()">📊 Grafik</button>
-                    <button class="btn-action btn-tool" onclick="exportPDF()">📄 PDF</button>
-                    <button class="btn-action btn-tool" onclick="renderSettings(); showModal('settingsModal')">⚙️ Ayarlar</button>
-                </div>
-            </div>
-            <div id="progress-text" style="font-size:10px; font-weight:600; color:var(--text-dim); margin-bottom:5px;">HARCAMA ORANI: %0</div>
-            <div style="width:100%; background:#e2e8f0; height:8px; border-radius:4px; overflow:hidden;"><div id="progress-fill" style="height:100%; background:var(--accent); width:0%; transition:0.5s;"></div></div>
+      <div class="sticky-controls">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
+          <div style="display:flex; align-items:center; gap:8px;">
+            <button id="btn_prev" type="button" class="btn-action">&lt;</button>
+            <span id="display-month" style="font-weight:700; min-width:150px; text-align:center;"></span>
+            <button id="btn_next" type="button" class="btn-action">&gt;</button>
+          </div>
+          <div style="display:flex; gap:8px; flex-wrap: wrap; justify-content: flex-end;">
+            <button id="btn_yearly" type="button" class="btn-action btn-tool">Yıllık Analiz</button>
+            <button id="btn_chart" type="button" class="btn-action btn-tool">Grafik</button>
+            <button id="btn_pdf" type="button" class="btn-action btn-tool">PDF</button>
+            <button id="btn_settings" type="button" class="btn-action btn-tool">Ayarlar</button>
+          </div>
         </div>
-        <div id="entries-container"></div>
-        <button class="btn-action" style="width:100%; margin-top:10px; background:none; border: 1px dashed var(--accent); color:var(--accent);" onclick="addRow()">+ Yeni İşlem Ekle</button>
-        <div class="summary-grid">
-            <div class="stat-item"><small>GELİR</small><div id="t-inc" style="color:var(--income); font-weight:700;">0 TL</div></div>
-            <div class="stat-item"><small>GİDER</small><div id="t-exp" style="color:var(--expense); font-weight:700;">0 TL</div></div>
-            <div class="stat-item"><small>BEKLEYEN</small><div id="t-pend" style="color:var(--pending); font-weight:700;">0 TL</div></div>
-            <div class="stat-item" style="background:var(--accent); color:white;"><small>NET KALAN</small><div id="t-net" style="font-weight:700;">0 TL</div></div>
-        </div>
-    </div>
-</div>
 
-<div class="calendar-section">
-    <div style="font-weight:700; font-size:0.9rem; margin-bottom:10px;">📅 Ödeme Takvimi</div>
+        <div id="progress-text" class="muted" style="margin-bottom:5px;">HARCAMA ORANI (TAHMİNİ): %0</div>
+        <div style="width:100%; background:#e2e8f0; height:8px; border-radius:4px; overflow:hidden;">
+          <div id="progress-fill" style="height:100%; background:var(--accent); width:0%; transition:0.5s;"></div>
+        </div>
+      </div>
+
+      <div id="entries-container"></div>
+
+      <button id="btn_add" type="button" class="btn-action" style="width:100%; margin-top:10px; background:none; border: 1px dashed var(--accent); color:var(--accent);">
+        Yeni İşlem Ekle
+      </button>
+
+      <div class="summary-grid">
+        <div class="stat-item">
+          <small>GELİR (ALINAN)</small>
+          <div id="t-inc" style="color:var(--income); font-weight:700;">0 TL</div>
+        </div>
+        <div class="stat-item">
+          <small>GİDER (ÖDENEN)</small>
+          <div id="t-exp" style="color:var(--expense); font-weight:700;">0 TL</div>
+        </div>
+        <div class="stat-item">
+          <small>GİDER (BEKLEYEN)</small>
+          <div id="t-pend" style="color:var(--pending); font-weight:700;">0 TL</div>
+        </div>
+        <div class="stat-item" style="background:var(--accent); color:white;">
+          <small>NET (TAHMİNİ)</small>
+          <div id="t-net" style="font-weight:700;">0 TL</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="calendar-section">
+    <div style="font-weight:700; font-size:0.9rem; margin-bottom:10px;">Ödeme Takvimi</div>
     <div class="calendar-grid" id="calendar-body"></div>
-</div>
+  </div>
 
-<div class="footer-copyright">umtdvr</div>
+  <div class="footer-copyright">umtdvr</div>
 
-<div id="chartModal" class="modal-overlay">
+  <div id="chartModal" class="modal-overlay" role="dialog" aria-modal="true">
     <div class="modal-content">
-        <button class="modal-close-x" onclick="closeModal('chartModal')">×</button>
-        <h3>Genel Bütçe Dağılımı</h3>
-        <canvas id="budgetChart"></canvas>
+      <button class="modal-close-x" type="button" data-close="chartModal">×</button>
+      <h3>Genel Bütçe Dağılımı</h3>
+      <canvas id="budgetChart"></canvas>
+      <div class="muted" style="margin-top:10px;">
+        Net değeri negatif ise grafikte 0 olarak gösterilir.
+      </div>
     </div>
-</div>
+  </div>
 
-<div id="settingsModal" class="modal-overlay">
+  <div id="settingsModal" class="modal-overlay" role="dialog" aria-modal="true">
     <div class="modal-content">
-        <button class="modal-close-x" onclick="closeModal('settingsModal')">×</button>
-        <h3>Ayarlar</h3>
-        <div style="font-size: 11px; font-weight: 700; color: var(--text-dim); margin-bottom: 10px;">ÖDEME GÜNLERİ</div>
-        <div id="settings-list"></div>
-        <hr style="border: none; border-top: 1px solid var(--border); margin: 20px 0;">
-        <div style="background: #fff1f2; border: 1px solid #fecaca; padding: 12px; border-radius: 10px; margin-bottom: 10px;">
-            <div style="color: #991b1b; font-size: 11px; font-weight: 700;">⚠️ KRİTİK UYARI</div>
-            <div style="color: #b91c1c; font-size: 10px;">Aşağıdaki buton tüm aylara ait verileri kalıcı olarak silecektir. Bu işlem geri alınamaz.</div>
-        </div>
-        <button class="btn-action btn-danger" style="width:100%;" onclick="hardResetData()">Tüm Verileri Sıfırla</button>
+      <button class="modal-close-x" type="button" data-close="settingsModal">×</button>
+      <h3>Ayarlar</h3>
+      <div style="font-size: 11px; font-weight: 700; color: var(--text-dim); margin-bottom: 10px;">ÖDEME GÜNLERİ (GİDER)</div>
+      <div id="settings-list"></div>
+      <hr style="border: none; border-top: 1px solid var(--border); margin: 20px 0;">
+      <div style="background: #fff1f2; border: 1px solid #fecaca; padding: 12px; border-radius: 10px; margin-bottom: 10px;">
+        <div style="color: #991b1b; font-size: 11px; font-weight: 700;">KRİTİK UYARI</div>
+        <div style="color: #b91c1c; font-size: 10px;">Aşağıdaki buton tüm aylara ait yerel verileri siler. Bulut yedeği varsa geri gelebilir.</div>
+      </div>
+      <button id="btn_reset" class="btn-action btn-danger" type="button" style="width:100%;">Tüm Verileri Sıfırla</button>
     </div>
-</div>
+  </div>
 
-<div id="yearlyModal" class="modal-overlay">
+  <div id="yearlyModal" class="modal-overlay" role="dialog" aria-modal="true">
     <div class="modal-content">
-        <button class="modal-close-x" onclick="closeModal('yearlyModal')">×</button>
-        <h3>2026 Yıllık Özet</h3>
-        <div id="yearly-content"></div>
+      <button class="modal-close-x" type="button" data-close="yearlyModal">×</button>
+      <h3 id="yearly-title">Yıllık Özet</h3>
+      <div id="yearly-content"></div>
     </div>
-</div>
+  </div>
 
 <script>
-    const CLIENT_ID = '874591165323-ktdp2ojebh4225v0335lvuk3pct8eraq.apps.googleusercontent.com';
-    const SCOPES = 'https://www.googleapis.com/auth/drive.appdata https://www.googleapis.com/auth/userinfo.email';
-    let accessToken = null, driveFileId = null, myChart = null;
-    const aylar = ["OCAK", "ŞUBAT", "MART", "NİSAN", "MAYIS", "HAZİRAN", "TEMMUZ", "AĞUSTOS", "EYLÜL", "EKİM", "KASIM", "ARALIK"];
-    let viewDate = new Date(), entries = [];
+(() => {
+  'use strict';
 
-    const iconMap = { 'maaş': '💰', 'kira': '🏠', 'market': '🛒', 'fatura': '📄', 'elektrik': '⚡', 'su': '💧', 'doğalgaz': '🔥', 'internet': '🌐', 'telefon': '📱', 'akaryakıt': '⛽', 'araba': '🚗', 'altın': '🪙', 'kredi': '💳', 'yemek': '🍔' };
-    function getIcon(n) { n = (n || "").toLowerCase(); for (let k in iconMap) { if (n.includes(k)) return iconMap[k]; } return '👛'; }
+  const CLIENT_ID = '874591165323-ktdp2ojebh4225v0335lvuk3pct8eraq.apps.googleusercontent.com';
+  const SCOPES = [
+    'https://www.googleapis.com/auth/drive.appdata',
+    'https://www.googleapis.com/auth/userinfo.email',
+    'https://www.googleapis.com/auth/userinfo.profile'
+  ].join(' ');
 
-    // --- GOOGLE DRIVE ---
-    function handleAuthClick() {
-        google.accounts.oauth2.initTokenClient({
-            client_id: CLIENT_ID, scope: SCOPES,
-            callback: async (res) => {
-                if (res.error) { showToast("Giriş Hatası!", "error"); return; }
-                accessToken = res.access_token;
-                document.getElementById('auth_btn').style.display = 'none';
-                document.getElementById('auth_controls').style.display = 'flex';
-                await fetchUserInfo(); await initDriveFile();
-                showToast("Bağlantı Başarılı", "success");
-            },
-        }).requestAccessToken();
+  const DRIVE_BACKUP_NAME = 'budget_appdata_v1.json';
+  const STORAGE_PREFIX = 'butce_';
+  const THEME_KEY = 'budget_theme_v1';
+
+  const aylar = ["OCAK","ŞUBAT","MART","NİSAN","MAYIS","HAZİRAN","TEMMUZ","AĞUSTOS","EYLÜL","EKİM","KASIM","ARALIK"];
+
+  let accessToken = null;
+  let tokenClient = null;
+  let driveFileId = null;
+  let myChart = null;
+
+  let viewDate = new Date();
+  let entries = [];
+
+  // Basit, emojisiz kategori etiketi
+  const iconMap = [
+    { k: 'maaş', v: 'INC' }, { k: 'kira', v: 'RNT' }, { k: 'market', v: 'MRK' }, { k: 'fatura', v: 'BIL' },
+    { k: 'elektrik', v: 'ELC' }, { k: 'su', v: 'WTR' }, { k: 'doğalgaz', v: 'GAS' }, { k: 'internet', v: 'NET' },
+    { k: 'telefon', v: 'TEL' }, { k: 'akaryakıt', v: 'FUE' }, { k: 'araba', v: 'CAR' }, { k: 'altın', v: 'GLD' },
+    { k: 'kredi', v: 'CRD' }, { k: 'yemek', v: 'FOD' }
+  ];
+  function getIconTag(name) {
+    const n = String(name || '').toLowerCase();
+    for (const it of iconMap) if (n.includes(it.k)) return it.v;
+    return 'TXN';
+  }
+
+  // ---------- DOM ----------
+  const $ = (id) => document.getElementById(id);
+
+  const elAuthBtn = $('auth_btn');
+  const elAuthControls = $('auth_controls');
+  const elUserInfo = $('user-info');
+  const elUserEmail = $('user-email');
+  const elUserImg = $('user-img');
+
+  const elMonth = $('display-month');
+  const elEntries = $('entries-container');
+  const elCal = $('calendar-body');
+
+  const elTInc = $('t-inc');
+  const elTExp = $('t-exp');
+  const elTPend = $('t-pend');
+  const elTNet = $('t-net');
+  const elProgText = $('progress-text');
+  const elProgFill = $('progress-fill');
+
+  // ---------- Helpers ----------
+  function showToast(message, type = 'info') {
+    const t = document.createElement('div');
+    t.className = `toast-msg toast-${type}`;
+    t.textContent = String(message || '');
+    document.body.appendChild(t);
+    setTimeout(() => t.classList.add('show'), 50);
+    setTimeout(() => {
+      t.classList.remove('show');
+      setTimeout(() => t.remove(), 300);
+    }, 2800);
+  }
+
+  function showModal(id) { $(id).style.display = 'flex'; }
+  function closeModal(id) { $(id).style.display = 'none'; }
+
+  function daysInMonth(year, monthIndex0) { return new Date(year, monthIndex0 + 1, 0).getDate(); }
+
+  function safeJsonParse(raw, fallback) {
+    try { return JSON.parse(raw); } catch { return fallback; }
+  }
+
+  function parseMoney(raw) {
+    const s = String(raw ?? '').trim().replace(',', '.');
+    const n = Number(s);
+    if (!Number.isFinite(n) || n < 0) return { ok: false, value: 0 };
+    return { ok: true, value: Math.round(n * 100) / 100 };
+  }
+
+  function normalizeBillDay(raw, year, monthIndex0) {
+    const d = Number.parseInt(String(raw ?? ''), 10);
+    const max = daysInMonth(year, monthIndex0);
+    if (!Number.isFinite(d)) return 1;
+    return Math.min(Math.max(d, 1), max);
+  }
+
+  function normalizeEntry(e0, year, monthIndex0) {
+    const e = e0 && typeof e0 === 'object' ? e0 : {};
+    const type = e.type === 'gelir' ? 'gelir' : 'gider';
+    const status = e.status === 'paid' ? 'paid' : 'pending';
+    const amt = parseMoney(e.amount);
+    return {
+      name: String(e.name ?? '').slice(0, 80),
+      amount: amt.value,
+      type,
+      status,
+      billDay: normalizeBillDay(e.billDay, year, monthIndex0),
+      _amountOk: amt.ok
+    };
+  }
+
+  function storageKeyFor(dateObj) {
+    return `${STORAGE_PREFIX}${aylar[dateObj.getMonth()]}_${dateObj.getFullYear()}`;
+  }
+
+  function safeSetItem(key, value) {
+    try {
+      localStorage.setItem(key, value);
+      return true;
+    } catch (err) {
+      showToast('Depolama hatası (kota veya izin).', 'error');
+      return false;
     }
+  }
 
-    async function fetchUserInfo() {
-        const res = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', { headers: { 'Authorization': `Bearer ${accessToken}` }});
-        const user = await res.json();
-        document.getElementById('user-email').innerText = user.email;
-        document.getElementById('user-img').src = user.picture;
-        document.getElementById('user-info').style.display = 'flex';
+  // ---------- Calculations ----------
+  function calculateV2(list, year, monthIndex0) {
+    let incomePaid = 0, incomePending = 0, expensePaid = 0, expensePending = 0, invalidCount = 0;
+    for (const e0 of list) {
+      const e = normalizeEntry(e0, year, monthIndex0);
+      if (!e._amountOk) invalidCount++;
+      if (e.type === 'gelir') {
+        if (e.status === 'paid') incomePaid += e.amount;
+        else incomePending += e.amount;
+      } else {
+        if (e.status === 'paid') expensePaid += e.amount;
+        else expensePending += e.amount;
+      }
     }
+    const incomeForecast = incomePaid + incomePending;
+    const outForecast = expensePaid + expensePending;
+    const netForecast = incomeForecast - outForecast;
+    const spendRatioForecast = incomeForecast > 0 ? Math.min((outForecast / incomeForecast) * 100, 100) : 0;
+    return { incomePaid, incomePending, expensePaid, expensePending, netForecast, spendRatioForecast, invalidCount };
+  }
 
-    async function initDriveFile() {
-        const res = await fetch('https://www.googleapis.com/drive/v3/files?q=name="asil_v20_data.json"&spaces=appDataFolder', { headers: { 'Authorization': `Bearer ${accessToken}` }});
-        const data = await res.json();
-        if (data.files?.length > 0) { driveFileId = data.files[0].id; await syncFromDrive(); } 
-        else { await createDriveFile(); }
+  function renderSummary() {
+    const y = viewDate.getFullYear();
+    const m = viewDate.getMonth();
+    const s = calculateV2(entries, y, m);
+
+    elTInc.textContent = `${s.incomePaid.toLocaleString()} TL`;
+    elTExp.textContent = `${s.expensePaid.toLocaleString()} TL`;
+    elTPend.textContent = `${s.expensePending.toLocaleString()} TL`;
+    elTNet.textContent = `${s.netForecast.toLocaleString()} TL`;
+
+    elProgFill.style.width = `${s.spendRatioForecast}%`;
+    elProgText.textContent = `HARCAMA ORANI (TAHMİNİ): %${s.spendRatioForecast.toFixed(1)}`;
+
+    if (s.invalidCount > 0) showToast('Bazı tutarlar geçersiz bulundu ve 0 kabul edildi.', 'info');
+    return s;
+  }
+
+  // ---------- Google / Drive ----------
+  function setAuthUi(isAuthed) {
+    elAuthBtn.style.display = isAuthed ? 'none' : 'flex';
+    elAuthControls.style.display = isAuthed ? 'flex' : 'none';
+  }
+
+  async function driveRequest(url, options = {}) {
+    if (!accessToken) throw new Error('NO_TOKEN');
+    const res = await fetch(url, {
+      ...options,
+      headers: { ...(options.headers || {}), Authorization: `Bearer ${accessToken}` }
+    });
+    if (res.status === 401 || res.status === 403) throw new Error(`AUTH_${res.status}`);
+    if (!res.ok) {
+      const txt = await res.text().catch(() => '');
+      throw new Error(`DRIVE_${res.status}:${txt.slice(0,200)}`);
     }
+    const ct = res.headers.get('content-type') || '';
+    if (ct.includes('application/json')) return res.json();
+    return res.text();
+  }
 
-    async function createDriveFile() {
-        const res = await fetch('https://www.googleapis.com/drive/v3/files', {
-            method: 'POST',
-            headers: { 'Authorization': `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
-            body: JSON.stringify({ name: 'asil_v20_data.json', parents: ['appDataFolder'] })
-        });
-        const file = await res.json(); driveFileId = file.id; syncToDrive();
+  async function fetchUserInfo() {
+    try {
+      const res = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
+        headers: { Authorization: `Bearer ${accessToken}` }
+      });
+      if (!res.ok) return;
+      const user = await res.json();
+      if (user && user.email) {
+        elUserEmail.textContent = user.email;
+        elUserInfo.style.display = 'flex';
+      }
+      if (user && user.picture) elUserImg.src = user.picture;
+    } catch { /* ignore */ }
+  }
+
+  async function findAppDataFileIdByName(name) {
+    const q = encodeURIComponent(`name="${name}" and trashed=false`);
+    const url = `https://www.googleapis.com/drive/v3/files?spaces=appDataFolder&q=${q}&fields=files(id,name,modifiedTime,etag)`;
+    const data = await driveRequest(url);
+    return (data && data.files && data.files[0]) ? data.files[0].id : null;
+  }
+
+  function exportStateForDrive() {
+    const out = { schemaVersion: 1, months: {} };
+    for (let i = 0; i < localStorage.length; i++) {
+      const k = localStorage.key(i);
+      if (k && k.startsWith(STORAGE_PREFIX)) {
+        const raw = localStorage.getItem(k);
+        const parsed = safeJsonParse(raw, null);
+        if (parsed && Array.isArray(parsed)) out.months[k] = parsed;
+      }
     }
+    out.theme = localStorage.getItem(THEME_KEY) || 'light';
+    return out;
+  }
 
-    async function syncToDrive() {
-        if (!driveFileId || !accessToken) return;
-        const allData = {};
-        for(let i=0; i<localStorage.length; i++) {
-            let key = localStorage.key(i);
-            if(key.startsWith("butce_")) allData[key] = JSON.parse(localStorage.getItem(key));
+  function applyDriveState(driveData) {
+    const months = (driveData && typeof driveData === 'object' && driveData.months && typeof driveData.months === 'object')
+      ? driveData.months : {};
+    // temizle
+    for (let i = localStorage.length - 1; i >= 0; i--) {
+      const k = localStorage.key(i);
+      if (k && k.startsWith(STORAGE_PREFIX)) localStorage.removeItem(k);
+    }
+    // uygula
+    for (const [k, v] of Object.entries(months)) safeSetItem(k, JSON.stringify(v));
+    if (driveData && (driveData.theme === 'dark' || driveData.theme === 'light')) {
+      safeSetItem(THEME_KEY, driveData.theme);
+      applyTheme(driveData.theme);
+    }
+    loadData();
+  }
+
+  async function initDriveFile() {
+    driveFileId = await findAppDataFileIdByName(DRIVE_BACKUP_NAME);
+    if (driveFileId) {
+      await syncFromDrive();
+      return;
+    }
+    const created = await driveRequest('https://www.googleapis.com/drive/v3/files', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        name: DRIVE_BACKUP_NAME,
+        parents: ['appDataFolder'],
+        mimeType: 'application/json'
+      })
+    });
+    driveFileId = created && created.id ? created.id : null;
+    if (driveFileId) await syncToDrive();
+  }
+
+  async function syncToDrive() {
+    if (!driveFileId || !accessToken) return;
+    const url = `https://www.googleapis.com/upload/drive/v3/files/${driveFileId}?uploadType=media`;
+    await driveRequest(url, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(exportStateForDrive())
+    });
+    showToast('Yedeklendi', 'success');
+  }
+
+  async function syncFromDrive() {
+    if (!driveFileId || !accessToken) return;
+    const url = `https://www.googleapis.com/drive/v3/files/${driveFileId}?alt=media`;
+    const raw = await driveRequest(url);
+    const data = (typeof raw === 'string') ? safeJsonParse(raw, {}) : raw;
+    applyDriveState(data);
+    showToast('Bulut eşitlendi', 'info');
+  }
+
+  function initTokenClient() {
+    tokenClient = google.accounts.oauth2.initTokenClient({
+      client_id: CLIENT_ID,
+      scope: SCOPES,
+      callback: async (res) => {
+        if (!res || res.error) { showToast('Giriş hatası', 'error'); return; }
+        accessToken = res.access_token;
+        setAuthUi(true);
+        await fetchUserInfo();
+        try {
+          await initDriveFile();
+          showToast('Bağlantı başarılı', 'success');
+        } catch {
+          showToast('Drive başlatma hatası', 'error');
         }
-        await fetch(`https://www.googleapis.com/upload/drive/v3/files/${driveFileId}?uploadType=media`, {
-            method: 'PATCH', headers: { 'Authorization': `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
-            body: JSON.stringify(allData)
-        });
-        showToast("Yedeklendi", "success");
-    }
+      }
+    });
+  }
 
-    async function syncFromDrive() {
-        const res = await fetch(`https://www.googleapis.com/drive/v3/files/${driveFileId}?alt=media`, { headers: { 'Authorization': `Bearer ${accessToken}` }});
-        const driveData = await res.json();
-        Object.keys(driveData).forEach(key => localStorage.setItem(key, JSON.stringify(driveData[key])));
-        loadData();
-        showToast("Eşitlendi", "info");
-    }
+  function handleAuthClick() {
+    if (!tokenClient) initTokenClient();
+    tokenClient.requestAccessToken();
+  }
 
-    // --- CORE ---
-    function loadData() {
-        const key = `butce_${aylar[viewDate.getMonth()]}_${viewDate.getFullYear()}`;
-        const stored = localStorage.getItem(key);
-        entries = stored ? JSON.parse(stored) : [{ name: '', amount: 0, type: 'gelir', status: 'pending', billDay: 1 }];
-        renderInitial();
+  function handleLogout() {
+    if (!accessToken) { location.reload(); return; }
+    try {
+      google.accounts.oauth2.revoke(accessToken, () => location.reload());
+    } catch {
+      location.reload();
     }
+  }
 
-    function renderInitial() {
-        document.getElementById('display-month').innerText = aylar[viewDate.getMonth()] + " " + viewDate.getFullYear();
-        const container = document.getElementById('entries-container');
-        container.innerHTML = ''; 
-        entries.forEach((item, index) => {
-            const row = document.createElement('div'); row.className = 'entry-row';
-            const isG = item.type === 'gelir';
-            const sL = isG ? (item.status === 'paid' ? 'ALINDI' : 'BEKLE') : (item.status === 'paid' ? 'ÖDENDİ' : 'BEKLE');
-            const sC = isG ? (item.status === 'paid' ? 'badge-received' : 'badge-awaiting') : (item.status === 'paid' ? 'badge-paid' : 'badge-pending');
-            
-            row.innerHTML = `
-                <div id="icon-box-${index}" style="font-size:18px;">${getIcon(item.name)}</div>
-                <input type="text" value="${item.name}" placeholder="İşlem" oninput="updateItem(${index}, 'name', this.value); document.getElementById('icon-box-${index}').innerText=getIcon(this.value)">
-                <input type="number" value="${item.amount || ''}" placeholder="0" oninput="updateItem(${index}, 'amount', this.value)">
-                <select onchange="updateItem(${index}, 'type', this.value); renderInitial();">
-                    <option value="gelir" ${isG ? 'selected' : ''}>Gelir</option>
-                    <option value="gider" ${!isG ? 'selected' : ''}>Gider</option>
-                </select>
-                <div class="status-badge ${sC}" onclick="toggleStatus(${index})">${sL}</div>
-                <button style="border:none; background:none; color:var(--text-dim); cursor:pointer;" onclick="removeRow(${index})">×</button>`;
-            container.appendChild(row);
-        });
-        calculate(); renderCalendar();
-    }
+  // ---------- Theme ----------
+  function applyTheme(theme) {
+    document.body.setAttribute('data-theme', theme === 'dark' ? 'dark' : 'light');
+  }
+  function loadTheme() {
+    const t = localStorage.getItem(THEME_KEY);
+    applyTheme(t === 'dark' ? 'dark' : 'light');
+  }
+  function toggleTheme() {
+    const cur = document.body.getAttribute('data-theme') === 'dark' ? 'dark' : 'light';
+    const next = cur === 'dark' ? 'light' : 'dark';
+    applyTheme(next);
+    safeSetItem(THEME_KEY, next);
+  }
 
-    function calculate() {
-        let inc = 0, exp = 0, pend = 0;
-        entries.forEach(i => {
-            if(i.type === 'gelir') inc += i.amount;
-            else if(i.status === 'paid') exp += i.amount;
-            else pend += i.amount;
-        });
-        const totalOut = exp + pend;
-        document.getElementById('t-inc').innerText = inc.toLocaleString() + " TL";
-        document.getElementById('t-exp').innerText = exp.toLocaleString() + " TL";
-        document.getElementById('t-pend').innerText = pend.toLocaleString() + " TL";
-        document.getElementById('t-net').innerText = (inc - totalOut).toLocaleString() + " TL";
-        const perc = inc > 0 ? Math.min((totalOut / inc) * 100, 100) : 0;
-        document.getElementById('progress-fill').style.width = perc + "%";
-        document.getElementById('progress-text').innerText = `HARCAMA ORANI: %${perc.toFixed(1)}`;
-        return { inc, exp, pend, net: (inc - totalOut) };
-    }
+  // ---------- Data load/save ----------
+  function loadData() {
+    const key = storageKeyFor(viewDate);
+    const stored = localStorage.getItem(key);
+    const parsed = safeJsonParse(stored, null);
+    const base = Array.isArray(parsed) ? parsed : [];
+    const y = viewDate.getFullYear();
+    const m = viewDate.getMonth();
+    entries = base.map(e => normalizeEntry(e, y, m));
 
-    function generateYearlyReport() {
-        showModal('yearlyModal');
-        let html = `<table><thead><tr><th>AY</th><th>GELİR</th><th>GİDER</th><th>KALAN</th></tr></thead><tbody>`;
-        let yGelir = 0, yGider = 0;
-        aylar.forEach(ay => {
-            const data = JSON.parse(localStorage.getItem(`butce_${ay}_2026`)) || [];
-            let mGelir = 0, mGider = 0;
-            data.forEach(x => { 
-                if(x.amount > 0) {
-                    if(x.type === 'gelir') mGelir += x.amount; 
-                    else mGider += x.amount;
-                }
-            });
-            yGelir += mGelir; yGider += mGider;
-            html += `<tr><td>${ay}</td><td>${mGelir.toLocaleString()} TL</td><td>${mGider.toLocaleString()} TL</td><td><b>${(mGelir-mGider).toLocaleString()} TL</b></td></tr>`;
-        });
-        html += `<tr style="background:var(--accent); color:white;"><td>TOPLAM</td><td>${yGelir.toLocaleString()}</td><td>${yGider.toLocaleString()}</td><td>${(yGelir-yGider).toLocaleString()}</td></tr></tbody></table>`;
-        document.getElementById('yearly-content').innerHTML = html;
-    }
+    if (entries.length === 0) entries = [normalizeEntry({ name: '', amount: 0, type: 'gider', status: 'pending', billDay: 1 }, y, m)];
+    renderAll();
+  }
 
-    function exportPDF() {
-        const element = document.querySelector('.budget-card');
-        const opt = { margin: 10, filename: `Butce_${aylar[viewDate.getMonth()]}.pdf`, html2canvas: { scale: 2 }, jsPDF: { unit: 'mm', format: 'a4' } };
-        html2pdf().set(opt).from(element).save();
-    }
+  function saveData() {
+    const key = storageKeyFor(viewDate);
+    const y = viewDate.getFullYear();
+    const m = viewDate.getMonth();
+    // normalize ederek sakla (schema stabilize)
+    const normalized = entries.map(e => {
+      const n = normalizeEntry(e, y, m);
+      return { name: n.name, amount: n.amount, type: n.type, status: n.status, billDay: n.billDay };
+    });
+    safeSetItem(key, JSON.stringify(normalized));
+  }
 
-    function showChart() {
-        showModal('chartModal');
-        const ctx = document.getElementById('budgetChart').getContext('2d');
-        if (myChart) myChart.destroy();
-        
-        const stats = calculate();
-        // Sadece pozitif değerleri grafiğe ekle
-        const labels = ["Ödenen Gider", "Bekleyen Gider", "Net Kalan"];
-        const data = [stats.exp, stats.pend, Math.max(0, stats.net)];
-        
-        myChart = new Chart(ctx, { 
-            type: 'doughnut', 
-            data: { 
-                labels: labels, 
-                datasets: [{ 
-                    data: data, 
-                    backgroundColor: ['#f43f5e', '#f59e0b', '#22c55e'] 
-                }] 
-            },
-            options: {
-                plugins: {
-                    legend: { position: 'bottom' }
-                }
-            }
-        });
-    }
+  // ---------- Rendering (no user data in innerHTML) ----------
+  function clearNode(node) { while (node.firstChild) node.removeChild(node.firstChild); }
 
-    function updateItem(i, k, v) { 
-        entries[i][k] = (k==='amount' || k==='billDay') ? parseFloat(v)||0 : v; 
-        localStorage.setItem(`butce_${aylar[viewDate.getMonth()]}_${viewDate.getFullYear()}`, JSON.stringify(entries));
-        calculate(); 
-        if(['billDay', 'name'].includes(k)) renderCalendar();
-    }
+  function makeButtonX(onClick) {
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.textContent = '×';
+    b.style.border = 'none';
+    b.style.background = 'none';
+    b.style.color = 'var(--text-dim)';
+    b.style.cursor = 'pointer';
+    b.addEventListener('click', onClick);
+    return b;
+  }
 
-    function removeRow(i) {
-        entries.splice(i, 1);
-        if(entries.length === 0) entries = [{ name: '', amount: 0, type: 'gider', status: 'pending', billDay: 1 }];
-        const key = `butce_${aylar[viewDate.getMonth()]}_${viewDate.getFullYear()}`;
-        localStorage.setItem(key, JSON.stringify(entries));
-        renderInitial(); calculate();
-        showToast("İşlem silindi", "info");
-    }
+  function makeStatusBadge(entry, index) {
+    const isIncome = entry.type === 'gelir';
+    const label = isIncome ? (entry.status === 'paid' ? 'ALINDI' : 'BEKLE') : (entry.status === 'paid' ? 'ÖDENDİ' : 'BEKLE');
+    const cls = isIncome ? (entry.status === 'paid' ? 'badge-received' : 'badge-awaiting') : (entry.status === 'paid' ? 'badge-paid' : 'badge-pending');
 
-    function hardResetData() {
-        const confirm1 = confirm("DİKKAT: Tüm aylara ait verileriniz silinecek. Emin misiniz?");
-        if(confirm1) {
-            const confirm2 = confirm("SON ONAY: Verileriniz buluttan geri yüklenmedikçe bir daha ulaşılamaz. Gerçekten silmek istiyor musunuz?");
-            if(confirm2) {
-                Object.keys(localStorage).forEach(key => { if(key.startsWith("butce_")) localStorage.removeItem(key); });
-                location.reload();
-            }
+    const d = document.createElement('div');
+    d.className = `status-badge ${cls}`;
+    d.textContent = label;
+    d.addEventListener('click', () => {
+      entries[index].status = entries[index].status === 'paid' ? 'pending' : 'paid';
+      saveData();
+      renderAll();
+    });
+    return d;
+  }
+
+  function renderRows() {
+    clearNode(elEntries);
+
+    const y = viewDate.getFullYear();
+    const m = viewDate.getMonth();
+
+    entries.forEach((item, index) => {
+      const entry = normalizeEntry(item, y, m);
+      entries[index] = entry;
+
+      const row = document.createElement('div');
+      row.className = 'entry-row';
+
+      const icon = document.createElement('div');
+      icon.className = 'icon-box';
+      icon.textContent = getIconTag(entry.name);
+
+      const inName = document.createElement('input');
+      inName.type = 'text';
+      inName.placeholder = 'İşlem';
+      inName.value = entry.name;
+      inName.addEventListener('input', (e) => {
+        const v = e.target.value;
+        entries[index].name = String(v).slice(0, 80);
+        icon.textContent = getIconTag(entries[index].name);
+        saveData();
+        renderCalendar(); // isim değişince takvim etiketleri güncellenir
+      });
+
+      const inAmount = document.createElement('input');
+      inAmount.type = 'number';
+      inAmount.placeholder = '0';
+      inAmount.value = entry.amount ? String(entry.amount) : '';
+      inAmount.addEventListener('input', (e) => {
+        const amt = parseMoney(e.target.value);
+        entries[index].amount = amt.value;
+        saveData();
+        renderSummary();
+      });
+
+      const selType = document.createElement('select');
+      const optIncome = document.createElement('option');
+      optIncome.value = 'gelir';
+      optIncome.textContent = 'Gelir';
+      const optExpense = document.createElement('option');
+      optExpense.value = 'gider';
+      optExpense.textContent = 'Gider';
+      selType.appendChild(optIncome);
+      selType.appendChild(optExpense);
+      selType.value = entry.type;
+      selType.addEventListener('change', (e) => {
+        entries[index].type = e.target.value === 'gelir' ? 'gelir' : 'gider';
+        // tip değişince statü etiketleri değişir
+        saveData();
+        renderAll();
+      });
+
+      const badge = makeStatusBadge(entry, index);
+
+      const del = makeButtonX(() => {
+        entries.splice(index, 1);
+        if (entries.length === 0) {
+          entries = [normalizeEntry({ name: '', amount: 0, type: 'gider', status: 'pending', billDay: 1 }, y, m)];
         }
-    }
+        saveData();
+        renderAll();
+        showToast('İşlem silindi', 'info');
+      });
 
-    function renderCalendar() {
-        const body = document.getElementById('calendar-body'); body.innerHTML = '';
-        const days = new Date(viewDate.getFullYear(), viewDate.getMonth() + 1, 0).getDate();
-        for (let d = 1; d <= days; d++) {
-            const dayDiv = document.createElement('div'); dayDiv.className = 'cal-day';
-            dayDiv.innerHTML = `<span style="font-size:10px; font-weight:700;">${d}</span>`;
-            entries.filter(e => e.type === 'gider' && e.billDay === d).forEach(ev => {
-                dayDiv.innerHTML += `<div style="font-size:7px; background:${ev.status==='paid'?'#dcfce7':'#fef3c7'}; padding:2px; border-radius:3px; margin-top:2px;">${getIcon(ev.name)} ${ev.name}</div>`;
-            });
-            body.appendChild(dayDiv);
+      row.appendChild(icon);
+      row.appendChild(inName);
+      row.appendChild(inAmount);
+      row.appendChild(selType);
+      row.appendChild(badge);
+      row.appendChild(del);
+
+      elEntries.appendChild(row);
+    });
+  }
+
+  function renderCalendar() {
+    clearNode(elCal);
+
+    const year = viewDate.getFullYear();
+    const month = viewDate.getMonth();
+    const days = daysInMonth(year, month);
+
+    for (let d = 1; d <= days; d++) {
+      const dayDiv = document.createElement('div');
+      dayDiv.className = 'cal-day';
+
+      const dayNum = document.createElement('div');
+      dayNum.className = 'day-num';
+      dayNum.textContent = String(d);
+      dayDiv.appendChild(dayNum);
+
+      // sadece gider + bekleyen/ödenen ayırımı renk ile
+      const todays = entries.filter(e => e.type === 'gider' && normalizeBillDay(e.billDay, year, month) === d);
+      for (const ev0 of todays) {
+        const ev = normalizeEntry(ev0, year, month);
+        const pill = document.createElement('div');
+        pill.style.fontSize = '8px';
+        pill.style.padding = '2px';
+        pill.style.borderRadius = '3px';
+        pill.style.marginTop = '2px';
+        pill.style.background = ev.status === 'paid' ? '#dcfce7' : '#fef3c7';
+
+        const tag = getIconTag(ev.name);
+        pill.textContent = `${tag} ${ev.name || 'İsimsiz'}`;
+        dayDiv.appendChild(pill);
+      }
+
+      elCal.appendChild(dayDiv);
+    }
+  }
+
+  function renderMonthTitle() {
+    elMonth.textContent = `${aylar[viewDate.getMonth()]} ${viewDate.getFullYear()}`;
+  }
+
+  function renderAll() {
+    renderMonthTitle();
+    renderRows();
+    renderSummary();
+    renderCalendar();
+  }
+
+  // ---------- Settings ----------
+  function renderSettings() {
+    const list = $('settings-list');
+    clearNode(list);
+
+    const year = viewDate.getFullYear();
+    const month = viewDate.getMonth();
+    const maxDay = daysInMonth(year, month);
+
+    const expenses = entries
+      .map((e, idx) => ({ e: normalizeEntry(e, year, month), idx }))
+      .filter(x => x.e.type === 'gider');
+
+    for (const it of expenses) {
+      const wrap = document.createElement('div');
+      wrap.style.display = 'flex';
+      wrap.style.justifyContent = 'space-between';
+      wrap.style.alignItems = 'center';
+      wrap.style.padding = '10px';
+      wrap.style.borderBottom = '1px solid var(--border)';
+
+      const left = document.createElement('div');
+      left.style.fontSize = '12px';
+      const tag = document.createElement('span');
+      tag.className = 'icon-box';
+      tag.style.marginRight = '8px';
+      tag.textContent = getIconTag(it.e.name);
+      const name = document.createElement('b');
+      name.textContent = it.e.name || 'İsimsiz';
+      left.appendChild(tag);
+      left.appendChild(name);
+
+      const inDay = document.createElement('input');
+      inDay.type = 'number';
+      inDay.min = '1';
+      inDay.max = String(maxDay);
+      inDay.value = String(it.e.billDay || 1);
+      inDay.style.width = '60px';
+      inDay.style.textAlign = 'center';
+      inDay.addEventListener('input', (e) => {
+        const v = normalizeBillDay(e.target.value, year, month);
+        entries[it.idx].billDay = v;
+        saveData();
+        renderCalendar();
+      });
+
+      wrap.appendChild(left);
+      wrap.appendChild(inDay);
+      list.appendChild(wrap);
+    }
+  }
+
+  // ---------- Yearly report (DOM build, no innerHTML) ----------
+  function safeLoadMonth(year, monthIndex0) {
+    const key = `${STORAGE_PREFIX}${aylar[monthIndex0]}_${year}`;
+    const raw = localStorage.getItem(key);
+    const parsed = safeJsonParse(raw, []);
+    return Array.isArray(parsed) ? parsed : [];
+  }
+
+  function generateYearlyReport() {
+    const year = viewDate.getFullYear();
+    $('yearly-title').textContent = `${year} Yıllık Özet`;
+    const host = $('yearly-content');
+    clearNode(host);
+
+    const table = document.createElement('table');
+    const thead = document.createElement('thead');
+    const trh = document.createElement('tr');
+
+    const headers = [
+      'AY',
+      'GELİR (ALINAN)',
+      'GELİR (BEKLEYEN)',
+      'GİDER (ÖDENEN)',
+      'GİDER (BEKLEYEN)',
+      'NET (TAHMİNİ)'
+    ];
+    for (const h of headers) {
+      const th = document.createElement('th');
+      th.textContent = h;
+      trh.appendChild(th);
+    }
+    thead.appendChild(trh);
+    table.appendChild(thead);
+
+    const tbody = document.createElement('tbody');
+
+    const T = { ip:0, inP:0, ep:0, eP:0, net:0 };
+    for (let mi = 0; mi < 12; mi++) {
+      const data = safeLoadMonth(year, mi);
+      const s = calculateV2(data, year, mi);
+
+      T.ip += s.incomePaid;
+      T.inP += s.incomePending;
+      T.ep += s.expensePaid;
+      T.eP += s.expensePending;
+      T.net += s.netForecast;
+
+      const tr = document.createElement('tr');
+      const cells = [
+        aylar[mi],
+        `${s.incomePaid.toLocaleString()} TL`,
+        `${s.incomePending.toLocaleString()} TL`,
+        `${s.expensePaid.toLocaleString()} TL`,
+        `${s.expensePending.toLocaleString()} TL`,
+        `${s.netForecast.toLocaleString()} TL`
+      ];
+      cells.forEach((c, idx) => {
+        const td = document.createElement('td');
+        if (idx === 5) {
+          const b = document.createElement('b');
+          b.textContent = c;
+          td.appendChild(b);
+        } else {
+          td.textContent = c;
         }
+        tr.appendChild(td);
+      });
+      tbody.appendChild(tr);
     }
 
-    function renderSettings() {
-        const list = document.getElementById('settings-list'); list.innerHTML = '';
-        entries.filter(e => e.type === 'gider').forEach((item) => {
-            const idx = entries.indexOf(item);
-            const div = document.createElement('div');
-            div.style = "display:flex; justify-content:space-between; align-items:center; padding:10px; border-bottom:1px solid var(--border);";
-            div.innerHTML = `<div style="font-size:12px;">${getIcon(item.name)} <b>${item.name || 'İsimsiz'}</b></div>
-                <input type="number" value="${item.billDay || 1}" min="1" max="31" oninput="updateItem(${idx}, 'billDay', this.value)" style="width:50px; text-align:center;">`;
-            list.appendChild(div);
-        });
-    }
+    const trT = document.createElement('tr');
+    trT.style.background = 'var(--accent)';
+    trT.style.color = 'white';
 
-    function handleLogout() { location.reload(); }
-    function showToast(m, type='info') {
-        const t = document.createElement('div'); t.className = `toast-msg toast-${type}`;
-        t.innerHTML = m; document.body.appendChild(t);
-        setTimeout(() => t.classList.add('show'), 100);
-        setTimeout(() => { t.classList.remove('show'); setTimeout(() => t.remove(), 500); }, 3000);
-    }
-    function showModal(id) { document.getElementById(id).style.display = 'flex'; }
-    function closeModal(id) { document.getElementById(id).style.display = 'none'; }
-    function changeMonth(s) { viewDate.setMonth(viewDate.getMonth() + s); loadData(); }
-    function addRow() { entries.push({ name: '', amount: 0, type: 'gider', status: 'pending', billDay: 1 }); renderInitial(); }
-    function toggleStatus(i) { entries[i].status = entries[i].status === 'paid' ? 'pending' : 'paid'; updateItem(i, 'status', entries[i].status); renderInitial(); }
-    function toggleTheme() { const t = document.body.getAttribute('data-theme') === 'dark' ? 'light' : 'dark'; document.body.setAttribute('data-theme', t); }
+    const totalCells = [
+      'TOPLAM',
+      `${T.ip.toLocaleString()} TL`,
+      `${T.inP.toLocaleString()} TL`,
+      `${T.ep.toLocaleString()} TL`,
+      `${T.eP.toLocaleString()} TL`,
+      `${T.net.toLocaleString()} TL`
+    ];
+    totalCells.forEach((c, idx) => {
+      const td = document.createElement('td');
+      if (idx === 5) {
+        const b = document.createElement('b');
+        b.textContent = c;
+        td.appendChild(b);
+      } else {
+        td.textContent = c;
+      }
+      trT.appendChild(td);
+    });
+    tbody.appendChild(trT);
 
-    window.onload = loadData;
+    table.appendChild(tbody);
+    host.appendChild(table);
+
+    showModal('yearlyModal');
+  }
+
+  // ---------- Chart / PDF ----------
+  function showChart() {
+    showModal('chartModal');
+    const ctx = $('budgetChart').getContext('2d');
+    if (myChart) myChart.destroy();
+
+    const y = viewDate.getFullYear();
+    const m = viewDate.getMonth();
+    const s = calculateV2(entries, y, m);
+
+    const labels = ['Ödenen Gider', 'Bekleyen Gider', 'Net (Pozitif)'];
+    const data = [s.expensePaid, s.expensePending, Math.max(0, s.netForecast)];
+
+    myChart = new Chart(ctx, {
+      type: 'doughnut',
+      data: {
+        labels,
+        datasets: [{
+          data,
+          backgroundColor: ['#f43f5e', '#f59e0b', '#22c55e']
+        }]
+      },
+      options: { plugins: { legend: { position: 'bottom' } } }
+    });
+  }
+
+  function exportPDF() {
+    const element = document.querySelector('.budget-card');
+    const opt = {
+      margin: 10,
+      filename: `Butce_${aylar[viewDate.getMonth()]}_${viewDate.getFullYear()}.pdf`,
+      html2canvas: { scale: 2 },
+      jsPDF: { unit: 'mm', format: 'a4' }
+    };
+    html2pdf().set(opt).from(element).save();
+  }
+
+  // ---------- Month nav ----------
+  function changeMonth(delta) {
+    viewDate.setMonth(viewDate.getMonth() + delta);
+    loadData();
+  }
+
+  // ---------- Reset ----------
+  function hardResetData() {
+    const c1 = confirm('Dikkat: Yerel veriler silinecek. Emin misiniz?');
+    if (!c1) return;
+    const c2 = confirm('Son onay: Bulut yedeği varsa tekrar geri gelebilir. Silinsin mi?');
+    if (!c2) return;
+
+    for (let i = localStorage.length - 1; i >= 0; i--) {
+      const k = localStorage.key(i);
+      if (k && k.startsWith(STORAGE_PREFIX)) localStorage.removeItem(k);
+    }
+    loadData();
+    showToast('Yerel veriler sıfırlandı', 'info');
+  }
+
+  // ---------- Wire events ----------
+  function bindEvents() {
+    elAuthBtn.addEventListener('click', handleAuthClick);
+    $('btn_backup').addEventListener('click', async () => {
+      try { await syncToDrive(); } catch { showToast('Yedekleme hatası', 'error'); }
+    });
+    $('btn_logout').addEventListener('click', handleLogout);
+
+    $('btn_prev').addEventListener('click', () => changeMonth(-1));
+    $('btn_next').addEventListener('click', () => changeMonth(1));
+
+    $('btn_add').addEventListener('click', () => {
+      const y = viewDate.getFullYear();
+      const m = viewDate.getMonth();
+      entries.push(normalizeEntry({ name: '', amount: 0, type: 'gider', status: 'pending', billDay: 1 }, y, m));
+      saveData();
+      renderAll();
+    });
+
+    $('btn_settings').addEventListener('click', () => {
+      renderSettings();
+      showModal('settingsModal');
+    });
+
+    $('btn_chart').addEventListener('click', showChart);
+    $('btn_pdf').addEventListener('click', exportPDF);
+    $('btn_yearly').addEventListener('click', generateYearlyReport);
+    $('btn_reset').addEventListener('click', hardResetData);
+
+    $('btn_theme').addEventListener('click', toggleTheme);
+
+    document.querySelectorAll('[data-close]').forEach(btn => {
+      btn.addEventListener('click', () => closeModal(btn.getAttribute('data-close')));
+    });
+
+    // Overlay click-to-close
+    ['chartModal','settingsModal','yearlyModal'].forEach(id => {
+      $(id).addEventListener('click', (e) => {
+        if (e.target && e.target.id === id) closeModal(id);
+      });
+    });
+  }
+
+  // ---------- Init ----------
+  function init() {
+    loadTheme();
+    bindEvents();
+    loadData();
+    setAuthUi(false);
+  }
+
+  window.addEventListener('load', init);
+
+})();
 </script>
 </body>
 </html>
