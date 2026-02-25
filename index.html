@@ -1,18 +1,18 @@
-<!-- SADECE DEĞİŞEN PARÇALARI DEĞİL, TAM DOSYAYI VERİYORUM (V4.1) -->
 <!DOCTYPE html>
 <html lang="tr">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Bütçe Planlama Uygulaması V4.1</title>
+  <title>Bütçe Planlama Uygulaması V4.2</title>
 
+  <!-- CSP: Drive + OAuth için connect-src genişletildi -->
   <meta http-equiv="Content-Security-Policy" content="
     default-src 'self';
     script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://accounts.google.com;
     style-src 'self' 'unsafe-inline' https://fonts.googleapis.com;
     font-src https://fonts.gstatic.com;
     img-src 'self' data: https://www.gstatic.com https://lh3.googleusercontent.com;
-    connect-src https://www.googleapis.com;
+    connect-src 'self' https://www.googleapis.com https://oauth2.googleapis.com;
     frame-src https://www.altinkaynak.com;
     base-uri 'self';
     form-action 'self';
@@ -252,7 +252,6 @@
     .footer-copyright { margin-top: 20px; margin-bottom: 20px; font-size: 10px; color: var(--text-dim); opacity: 0.6; }
     .muted { color: var(--text-dim); font-size: 11px; font-weight: 600; }
 
-    /* ICON DÜZELTME: emoji yerine küçük ikon fontu/simge kutusu */
     .icon-box {
       width: 32px; height: 30px;
       display: flex; align-items: center; justify-content: center;
@@ -264,19 +263,9 @@
       user-select: none;
     }
 
-    /* Grafik boyutu küçültme */
-    #budgetChart {
-      width: 100% !important;
-      height: 260px !important;
-      max-height: 260px !important;
-      display: block;
-      margin: 0 auto;
-    }
-    .chart-wrap {
-      width: 100%;
-      max-width: 420px;
-      margin: 0 auto;
-    }
+    /* Grafik küçültme */
+    #budgetChart { width: 100% !important; height: 260px !important; max-height: 260px !important; display:block; }
+    .chart-wrap { width: 100%; max-width: 420px; margin: 0 auto; }
   </style>
 </head>
 
@@ -285,7 +274,7 @@
     <div class="header-left">
       <h1 style="font-size: 1.3rem; margin:0;">
         Bütçe Planlama Uygulaması
-        <span style="font-size:10px; opacity:0.5;">V4.1</span>
+        <span style="font-size:10px; opacity:0.5;">V4.2</span>
       </h1>
       <div id="user-info" style="display:none; align-items:center; gap:8px;">
         <img id="user-img" alt="user" src="" style="width:24px; height:24px; border-radius:50%;">
@@ -311,36 +300,24 @@
       <div class="widget-card">
         <div class="widget-header">24 AYAR GRAM</div>
         <div class="crop-box">
-          <iframe
-            src="https://www.altinkaynak.com/canli-kurlar/altin"
-            id="frame-gram"
-            loading="lazy"
-            referrerpolicy="no-referrer"
-            sandbox="allow-scripts allow-same-origin"></iframe>
+          <iframe src="https://www.altinkaynak.com/canli-kurlar/altin" id="frame-gram"
+            loading="lazy" referrerpolicy="no-referrer" sandbox="allow-scripts allow-same-origin"></iframe>
         </div>
       </div>
 
       <div class="widget-card">
         <div class="widget-header">ÇEYREK ALTIN</div>
         <div class="crop-box">
-          <iframe
-            src="https://www.altinkaynak.com/canli-kurlar/altin"
-            id="frame-ceyrek"
-            loading="lazy"
-            referrerpolicy="no-referrer"
-            sandbox="allow-scripts allow-same-origin"></iframe>
+          <iframe src="https://www.altinkaynak.com/canli-kurlar/altin" id="frame-ceyrek"
+            loading="lazy" referrerpolicy="no-referrer" sandbox="allow-scripts allow-same-origin"></iframe>
         </div>
       </div>
 
       <div class="widget-card">
         <div class="widget-header">DOLAR & EURO</div>
         <div class="crop-box currency-box">
-          <iframe
-            src="https://www.altinkaynak.com/canli-kurlar/doviz"
-            id="frame-doviz"
-            loading="lazy"
-            referrerpolicy="no-referrer"
-            sandbox="allow-scripts allow-same-origin"></iframe>
+          <iframe src="https://www.altinkaynak.com/canli-kurlar/doviz" id="frame-doviz"
+            loading="lazy" referrerpolicy="no-referrer" sandbox="allow-scripts allow-same-origin"></iframe>
         </div>
       </div>
     </div>
@@ -369,7 +346,8 @@
 
       <div id="entries-container"></div>
 
-      <button id="btn_add" type="button" class="btn-action" style="width:100%; margin-top:10px; background:none; border: 1px dashed var(--accent); color:var(--accent);">
+      <button id="btn_add" type="button" class="btn-action"
+        style="width:100%; margin-top:10px; background:none; border: 1px dashed var(--accent); color:var(--accent);">
         Yeni İşlem Ekle
       </button>
 
@@ -462,7 +440,6 @@
   let viewDate = new Date();
   let entries = [];
 
-  // ICONLAR GERİ: emoji seti + fallback
   const iconMap = [
     { k: 'maaş', v: '💰' }, { k: 'kira', v: '🏠' }, { k: 'market', v: '🛒' }, { k: 'fatura', v: '📄' },
     { k: 'elektrik', v: '⚡' }, { k: 'su', v: '💧' }, { k: 'doğalgaz', v: '🔥' }, { k: 'internet', v: '🌐' },
@@ -553,10 +530,9 @@
   }
 
   function calculateV2(list, year, monthIndex0) {
-    let incomePaid = 0, incomePending = 0, expensePaid = 0, expensePending = 0, invalidCount = 0;
+    let incomePaid = 0, incomePending = 0, expensePaid = 0, expensePending = 0;
     for (const e0 of list) {
       const e = normalizeEntry(e0, year, monthIndex0);
-      if (!e._amountOk) invalidCount++;
       if (e.type === 'gelir') {
         if (e.status === 'paid') incomePaid += e.amount;
         else incomePending += e.amount;
@@ -569,7 +545,7 @@
     const outForecast = expensePaid + expensePending;
     const netForecast = incomeForecast - outForecast;
     const spendRatioForecast = incomeForecast > 0 ? Math.min((outForecast / incomeForecast) * 100, 100) : 0;
-    return { incomePaid, incomePending, expensePaid, expensePending, netForecast, spendRatioForecast, invalidCount };
+    return { incomePaid, incomePending, expensePaid, expensePending, netForecast, spendRatioForecast };
   }
 
   function renderSummary() {
@@ -593,20 +569,26 @@
     elAuthControls.style.display = isAuthed ? 'flex' : 'none';
   }
 
+  // DRIVE DEBUG: gerçek hatayı konsola + toasta basar
   async function driveRequest(url, options = {}) {
     if (!accessToken) throw new Error('NO_TOKEN');
+
     const res = await fetch(url, {
       ...options,
       headers: { ...(options.headers || {}), Authorization: `Bearer ${accessToken}` }
     });
-    if (res.status === 401 || res.status === 403) throw new Error(`AUTH_${res.status}`);
+
+    const bodyText = await res.text().catch(() => '');
     if (!res.ok) {
-      const txt = await res.text().catch(() => '');
-      throw new Error(`DRIVE_${res.status}:${txt.slice(0,200)}`);
+      console.error('DRIVE_ERROR', res.status, url, bodyText);
+      throw new Error(`DRIVE_${res.status}: ${bodyText.slice(0, 180)}`);
     }
+
     const ct = res.headers.get('content-type') || '';
-    if (ct.includes('application/json')) return res.json();
-    return res.text();
+    if (ct.includes('application/json')) {
+      try { return JSON.parse(bodyText || '{}'); } catch { return {}; }
+    }
+    return bodyText;
   }
 
   async function fetchUserInfo() {
@@ -621,7 +603,7 @@
         elUserInfo.style.display = 'flex';
       }
       if (user && user.picture) elUserImg.src = user.picture;
-    } catch { }
+    } catch {}
   }
 
   async function findAppDataFileIdByName(name) {
@@ -645,29 +627,44 @@
     return out;
   }
 
+  function applyTheme(theme) {
+    document.body.setAttribute('data-theme', theme === 'dark' ? 'dark' : 'light');
+  }
+
   function applyDriveState(driveData) {
     const months = (driveData && typeof driveData === 'object' && driveData.months && typeof driveData.months === 'object')
       ? driveData.months : {};
+
     for (let i = localStorage.length - 1; i >= 0; i--) {
       const k = localStorage.key(i);
       if (k && k.startsWith(STORAGE_PREFIX)) localStorage.removeItem(k);
     }
+
     for (const [k, v] of Object.entries(months)) safeSetItem(k, JSON.stringify(v));
+
     if (driveData && (driveData.theme === 'dark' || driveData.theme === 'light')) {
       safeSetItem(THEME_KEY, driveData.theme);
       applyTheme(driveData.theme);
     }
+
     loadData();
   }
 
   async function initDriveFile() {
-    driveFileId = await findAppDataFileIdByName('budget_appdata_v1.json');
+    driveFileId = await findAppDataFileIdByName(DRIVE_BACKUP_NAME);
     if (driveFileId) { await syncFromDrive(); return; }
-    const created = await driveRequest('https://www.googleapis.com/drive/v3/files', {
+
+    // IMPORTANT: fields=id ile response'u küçük ve deterministik tut
+    const created = await driveRequest('https://www.googleapis.com/drive/v3/files?fields=id', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name: 'budget_appdata_v1.json', parents: ['appDataFolder'], mimeType: 'application/json' })
+      body: JSON.stringify({
+        name: DRIVE_BACKUP_NAME,
+        parents: ['appDataFolder'],
+        mimeType: 'application/json'
+      })
     });
+
     driveFileId = created && created.id ? created.id : null;
     if (driveFileId) await syncToDrive();
   }
@@ -701,8 +698,12 @@
         accessToken = res.access_token;
         setAuthUi(true);
         await fetchUserInfo();
-        try { await initDriveFile(); showToast('Bağlantı başarılı', 'success'); }
-        catch { showToast('Drive başlatma hatası', 'error'); }
+        try {
+          await initDriveFile();
+          showToast('Drive hazır', 'success');
+        } catch (e) {
+          showToast(String(e && e.message ? e.message : e), 'error');
+        }
       }
     });
   }
@@ -718,13 +719,11 @@
     catch { location.reload(); }
   }
 
-  function applyTheme(theme) {
-    document.body.setAttribute('data-theme', theme === 'dark' ? 'dark' : 'light');
-  }
   function loadTheme() {
     const t = localStorage.getItem(THEME_KEY);
     applyTheme(t === 'dark' ? 'dark' : 'light');
   }
+
   function toggleTheme() {
     const cur = document.body.getAttribute('data-theme') === 'dark' ? 'dark' : 'light';
     const next = cur === 'dark' ? 'light' : 'dark';
@@ -924,11 +923,14 @@
 
       const left = document.createElement('div');
       left.style.fontSize = '12px';
+
       const icon = document.createElement('span');
       icon.textContent = getIcon(it.e.name);
       icon.style.marginRight = '8px';
+
       const name = document.createElement('b');
       name.textContent = it.e.name || 'İsimsiz';
+
       left.appendChild(icon);
       left.appendChild(name);
 
@@ -1061,7 +1063,6 @@
     const labels = ['Ödenen Gider', 'Bekleyen Gider', 'Net (Pozitif)'];
     const data = [s.expensePaid, s.expensePending, Math.max(0, s.netForecast)];
 
-    // Boyut küçültme: responsive + maintainAspectRatio false + aspectRatio
     myChart = new Chart(ctx, {
       type: 'doughnut',
       data: {
@@ -1110,9 +1111,9 @@
   }
 
   function bindEvents() {
-    elAuthBtn.addEventListener('click', handleAuthClick);
+    $('auth_btn').addEventListener('click', handleAuthClick);
     $('btn_backup').addEventListener('click', async () => {
-      try { await syncToDrive(); } catch { showToast('Yedekleme hatası', 'error'); }
+      try { await syncToDrive(); } catch (e) { showToast(String(e && e.message ? e.message : e), 'error'); }
     });
     $('btn_logout').addEventListener('click', handleLogout);
 
