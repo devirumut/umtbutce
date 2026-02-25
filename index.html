@@ -1,0 +1,400 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bütçe Planlama Uygulaması</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
+    <style>
+        :root {
+            --primary: #f8fafc; --card-bg: #ffffff; --accent: #4f46e5;
+            --income: #22c55e; --expense: #f43f5e; --pending: #f59e0b;
+            --text-main: #1e293b; --text-dim: #64748b; --border: #e2e8f0;
+        }
+        [data-theme="dark"] {
+            --primary: #0f172a; --card-bg: #1e293b; --accent: #818cf8;
+            --text-main: #f1f5f9; --text-dim: #94a3b8; --border: #334155;
+        }
+        body {
+            font-family: 'Poppins', sans-serif; background-color: var(--primary);
+            color: var(--text-main); margin: 0; padding: 10px; transition: all 0.3s ease;
+            display: flex; flex-direction: column; align-items: center; min-height: 100vh;
+        }
+        .app-header {
+            width: 100%; max-width: 1750px; display: flex; justify-content: space-between; align-items: center;
+            padding: 10px 25px; background: var(--card-bg); border-radius: 15px; 
+            margin-bottom: 15px; box-shadow: 0 4px 20px rgba(0,0,0,0.03); border: 1px solid var(--border); box-sizing: border-box;
+        }
+        .header-left, .header-right { display: flex; align-items: center; gap: 12px; }
+        
+        .google-btn {
+            display: flex; align-items: center; gap: 10px; background: white; color: #3c4043;
+            border: 1px solid #dadce0; padding: 8px 16px; border-radius: 6px; font-weight: 500;
+            font-size: 14px; cursor: pointer; transition: 0.2s; box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+        }
+        .google-btn:hover { background: #f8f9fa; box-shadow: 0 1px 3px 1px rgba(0,0,0,0.15); }
+        .google-btn img { width: 18px; height: 18px; }
+
+        .main-layout { display: grid; grid-template-columns: 650px 1fr; gap: 20px; width: 100%; max-width: 1750px; margin-bottom: 15px; }
+        .left-panel { display: flex; flex-direction: column; gap: 10px; }
+        .widget-card { background: var(--card-bg); border-radius: 12px; border: 1px solid var(--border); overflow: hidden; }
+        .widget-header { background: #f1f5f9; padding: 6px 15px; font-size: 0.7rem; font-weight: 600; color: #64748b; text-transform: uppercase; }
+        [data-theme="dark"] .widget-header { background: #334155; color: #cbd5e1; }
+        
+        .crop-box { height: 42px; overflow: hidden; position: relative; background: #fff; }
+        .crop-box iframe { border: none; width: 2400px; height: 5000px; position: absolute; transform: scale(0.63); transform-origin: 0 0; }
+        #frame-gram { top: -260px; left: -25px; } #frame-ceyrek { top: -182px; left: -775px; }
+        .currency-box { height: 78px; } #frame-doviz { top: -184px; left: -25px; }
+        
+        .budget-card { background: var(--card-bg); padding: 20px 30px; border-radius: 20px; border: 1px solid var(--border); box-shadow: 0 10px 40px rgba(0,0,0,0.04); position: relative; }
+        .sticky-controls { position: sticky; top: 0; background: var(--card-bg); z-index: 100; padding-bottom: 15px; border-bottom: 1px solid var(--border); margin-bottom: 15px; }
+        
+        .entry-row { display: grid; grid-template-columns: 35px 1.5fr 0.7fr 0.6fr 100px 30px; gap: 8px; margin-bottom: 8px; align-items: center; }
+        input, select { background: var(--primary); border: 1.5px solid var(--border); padding: 8px; border-radius: 8px; font-size: 12px; color: var(--text-main); outline: none; }
+        
+        .status-badge { display: flex; align-items: center; justify-content: center; height: 30px; border-radius: 8px; cursor: pointer; font-size: 8px; font-weight: 700; background: var(--primary); border: 1px solid var(--border); }
+        .badge-paid { background: #dcfce7 !important; color: #166534 !important; }
+        .badge-pending { background: #fef3c7 !important; color: #92400e !important; }
+        .badge-received { background: #e0f2fe !important; color: #075985 !important; }
+        .badge-awaiting { background: #f1f5f9 !important; color: #475569 !important; }
+        
+        .btn-action { background: var(--accent); color: white; border: none; padding: 8px 12px; border-radius: 8px; font-weight: 600; cursor: pointer; font-size: 11px; transition: 0.2s; }
+        .btn-tool { background: #f1f5f9; color: #1e293b; border: 1px solid var(--border); }
+        [data-theme="dark"] .btn-tool { background: #334155; color: #f1f5f9; }
+
+        .modal-overlay { display: none; position: fixed; z-index: 2000; left: 0; top: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); backdrop-filter: blur(5px); justify-content: center; align-items: center; }
+        .modal-content { background: var(--card-bg); padding: 25px; border-radius: 20px; border: 1px solid var(--border); width: 90%; max-width: 600px; max-height: 85vh; overflow-y: auto; position: relative; }
+        .modal-close-x { position: absolute; top: 15px; right: 15px; font-size: 24px; cursor: pointer; color: var(--text-dim); transition: 0.2s; line-height: 1; border: none; background: none; }
+        .modal-close-x:hover { color: var(--expense); transform: scale(1.1); }
+
+        .toast-msg { 
+            position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%) translateY(100px); 
+            padding: 14px 28px; border-radius: 12px; color: white; font-weight: 500; font-size: 13px; 
+            z-index: 9999; box-shadow: 0 10px 25px rgba(0,0,0,0.15); transition: 0.4s;
+            display: flex; align-items: center; gap: 10px; min-width: 220px; justify-content: center;
+        }
+        .toast-msg.show { transform: translateX(-50%) translateY(0); }
+        .toast-info { background: #4f46e5; }
+        .toast-success { background: #10b981; }
+        .toast-error { background: #ef4444; }
+
+        .calendar-section { width: 100%; max-width: 1750px; background: var(--card-bg); padding: 15px 25px; border-radius: 20px; border: 1px solid var(--border); margin-top: 15px; box-sizing: border-box; }
+        .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; margin-top: 10px; }
+        .cal-day { background: var(--primary); border: 1px solid var(--border); min-height: 60px; border-radius: 10px; padding: 5px; }
+        
+        .summary-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-top: 20px; }
+        .stat-item { padding: 12px; border-radius: 14px; background: var(--primary); border: 1px solid var(--border); }
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+        th, td { padding: 10px; text-align: left; border-bottom: 1px solid var(--border); font-size: 12px; }
+
+        .footer-copyright { margin-top: 20px; margin-bottom: 20px; font-size: 10px; color: var(--text-dim); opacity: 0.6; letter-spacing: 1px; }
+    </style>
+</head>
+<body>
+
+<div class="app-header">
+    <div class="header-left">
+        <h1 style="font-size: 1.3rem; margin:0;">Bütçe Planlama Uygulaması</h1>
+        <div id="user-info" style="display:none; align-items:center; gap:8px;">
+            <img id="user-img" src="" style="width:24px; height:24px; border-radius:50%;">
+            <span id="user-email" style="font-size:11px; font-weight:600;"></span>
+        </div>
+    </div>
+    <div class="header-right">
+        <button id="auth_btn" class="google-btn" onclick="handleAuthClick()">
+            <img src="https://www.gstatic.com/images/branding/product/1x/gsa_512dp.png" alt="Google">
+            Google ile Bağlan
+        </button>
+        <div id="auth_controls" style="display:none; gap:8px;">
+            <button class="btn-action" onclick="syncToDrive()" style="background:#22c55e;">Buluta Yedekle</button>
+            <button class="btn-action" onclick="handleLogout()" style="background:#64748b;">Güvenli Çıkış</button>
+        </div>
+        <button onclick="toggleTheme()" class="btn-action btn-tool">🌓</button>
+    </div>
+</div>
+
+<div class="main-layout">
+    <div class="left-panel">
+        <div class="widget-card"><div class="widget-header">24 AYAR GRAM</div><div class="crop-box"><iframe src="https://www.altinkaynak.com/canli-kurlar/altin" id="frame-gram"></iframe></div></div>
+        <div class="widget-card"><div class="widget-header">ÇEYREK ALTIN</div><div class="crop-box"><iframe src="https://www.altinkaynak.com/canli-kurlar/altin" id="frame-ceyrek"></iframe></div></div>
+        <div class="widget-card"><div class="widget-header">DOLAR & EURO</div><div class="crop-box currency-box"><iframe src="https://www.altinkaynak.com/canli-kurlar/doviz" id="frame-doviz"></iframe></div></div>
+    </div>
+
+    <div class="budget-card">
+        <div class="sticky-controls">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
+                <div style="display:flex; align-items:center; gap:8px;">
+                    <button onclick="changeMonth(-1)" class="btn-action">❮</button>
+                    <span id="display-month" style="font-weight:700; min-width:120px; text-align:center;"></span>
+                    <button onclick="changeMonth(1)" class="btn-action">❯</button>
+                </div>
+                <div style="display:flex; gap:8px;">
+                    <button class="btn-action btn-tool" onclick="generateYearlyReport()">📅 Yıllık Analiz</button>
+                    <button class="btn-action btn-tool" onclick="showChart()">📊 Grafik</button>
+                    <button class="btn-action btn-tool" onclick="renderSettings(); showModal('settingsModal')">⚙️ Ayarlar</button>
+                </div>
+            </div>
+            <div id="progress-text" style="font-size:10px; font-weight:600; color:var(--text-dim); margin-bottom:5px;">HARCAMA ORANI: %0</div>
+            <div style="width:100%; background:#e2e8f0; height:8px; border-radius:4px; overflow:hidden;"><div id="progress-fill" style="height:100%; background:var(--accent); width:0%; transition:0.5s;"></div></div>
+        </div>
+        <div id="entries-container"></div>
+        <button class="btn-action" style="width:100%; margin-top:10px; background:none; border: 1px dashed var(--accent); color:var(--accent);" onclick="addRow()">+ Yeni İşlem Ekle</button>
+        <div class="summary-grid">
+            <div class="stat-item"><small>GELİR</small><div id="t-inc" style="color:var(--income); font-weight:700;">0 TL</div></div>
+            <div class="stat-item"><small>GİDER</small><div id="t-exp" style="color:var(--expense); font-weight:700;">0 TL</div></div>
+            <div class="stat-item"><small>BEKLEYEN</small><div id="t-pend" style="color:var(--pending); font-weight:700;">0 TL</div></div>
+            <div class="stat-item" style="background:var(--accent); color:white;"><small>NET KALAN</small><div id="t-net" style="font-weight:700;">0 TL</div></div>
+        </div>
+    </div>
+</div>
+
+<div class="calendar-section">
+    <div style="font-weight:700; font-size:0.9rem; margin-bottom:10px;">📅 Ödeme Takvimi</div>
+    <div class="calendar-grid" id="calendar-body"></div>
+</div>
+
+<div class="footer-copyright">umtdvr</div>
+
+<div id="chartModal" class="modal-overlay">
+    <div class="modal-content">
+        <button class="modal-close-x" onclick="closeModal('chartModal')">×</button>
+        <h3>Harcama Dağılımı</h3>
+        <canvas id="budgetChart"></canvas>
+        <button class="btn-action" style="width:100%; margin-top:15px;" onclick="closeModal('chartModal')">Kapat</button>
+    </div>
+</div>
+
+<div id="settingsModal" class="modal-overlay">
+    <div class="modal-content">
+        <button class="modal-close-x" onclick="closeModal('settingsModal')">×</button>
+        <h3>Ödeme Günü Ayarları</h3>
+        <div id="settings-list"></div>
+        <button class="btn-action" style="width:100%; margin-top:15px;" onclick="closeModal('settingsModal')">Kapat</button>
+    </div>
+</div>
+
+<div id="yearlyModal" class="modal-overlay">
+    <div class="modal-content">
+        <button class="modal-close-x" onclick="closeModal('yearlyModal')">×</button>
+        <h3>2026 Yıllık Özet</h3>
+        <div id="yearly-content"></div>
+        <button class="btn-action" style="width:100%; margin-top:15px;" onclick="closeModal('yearlyModal')">Kapat</button>
+    </div>
+</div>
+
+<script>
+    const CLIENT_ID = '874591165323-ktdp2ojebh4225v0335lvuk3pct8eraq.apps.googleusercontent.com';
+    const SCOPES = 'https://www.googleapis.com/auth/drive.appdata https://www.googleapis.com/auth/userinfo.email';
+    let accessToken = null, driveFileId = null, myChart = null;
+    const aylar = ["OCAK", "ŞUBAT", "MART", "NİSAN", "MAYIS", "HAZİRAN", "TEMMUZ", "AĞUSTOS", "EYLÜL", "EKİM", "KASIM", "ARALIK"];
+    let viewDate = new Date(), entries = [];
+
+    const iconMap = { 'maaş': '💰', 'kira': '🏠', 'market': '🛒', 'fatura': '📄', 'elektrik': '⚡', 'su': '💧', 'doğalgaz': '🔥', 'internet': '🌐', 'telefon': '📱', 'akaryakıt': '⛽', 'araba': '🚗', 'altın': '🪙', 'kredi': '💳', 'yemek': '🍔' };
+    function getIcon(n) { n = (n || "").toLowerCase(); for (let k in iconMap) { if (n.includes(k)) return iconMap[k]; } return '👛'; }
+
+    // --- GOOGLE DRIVE ---
+    function handleAuthClick() {
+        google.accounts.oauth2.initTokenClient({
+            client_id: CLIENT_ID, scope: SCOPES,
+            callback: async (res) => {
+                if (res.error) { showToast("Giriş Hatası!", "error"); return; }
+                accessToken = res.access_token;
+                document.getElementById('auth_btn').style.display = 'none';
+                document.getElementById('auth_controls').style.display = 'flex';
+                await fetchUserInfo(); await initDriveFile();
+                showToast("Bağlantı Başarılı", "success");
+            },
+        }).requestAccessToken();
+    }
+
+    async function fetchUserInfo() {
+        const res = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', { headers: { 'Authorization': `Bearer ${accessToken}` }});
+        const user = await res.json();
+        document.getElementById('user-email').innerText = user.email;
+        document.getElementById('user-img').src = user.picture;
+        document.getElementById('user-info').style.display = 'flex';
+    }
+
+    async function initDriveFile() {
+        const res = await fetch('https://www.googleapis.com/drive/v3/files?q=name="asil_v20_data.json"&spaces=appDataFolder', { headers: { 'Authorization': `Bearer ${accessToken}` }});
+        const data = await res.json();
+        if (data.files?.length > 0) { driveFileId = data.files[0].id; await syncFromDrive(); } 
+        else { await createDriveFile(); }
+    }
+
+    async function createDriveFile() {
+        const res = await fetch('https://www.googleapis.com/drive/v3/files', {
+            method: 'POST',
+            headers: { 'Authorization': `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
+            body: JSON.stringify({ name: 'asil_v20_data.json', parents: ['appDataFolder'] })
+        });
+        const file = await res.json(); driveFileId = file.id; syncToDrive();
+    }
+
+    async function syncToDrive() {
+        if (!driveFileId || !accessToken) return false;
+        const allData = {};
+        for(let i=0; i<localStorage.length; i++) {
+            let key = localStorage.key(i);
+            if(key.startsWith("butce_")) allData[key] = JSON.parse(localStorage.getItem(key));
+        }
+        try {
+            await fetch(`https://www.googleapis.com/upload/drive/v3/files/${driveFileId}?uploadType=media`, {
+                method: 'PATCH', headers: { 'Authorization': `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
+                body: JSON.stringify(allData)
+            });
+            showToast("Veriler Buluta Aktarıldı", "success");
+            return true;
+        } catch (e) { showToast("Yedekleme Başarısız!", "error"); return false; }
+    }
+
+    async function syncFromDrive() {
+        const res = await fetch(`https://www.googleapis.com/drive/v3/files/${driveFileId}?alt=media`, { headers: { 'Authorization': `Bearer ${accessToken}` }});
+        const driveData = await res.json();
+        Object.keys(driveData).forEach(key => localStorage.setItem(key, JSON.stringify(driveData[key])));
+        loadData();
+        showToast("Veriler Eşitlendi", "info");
+    }
+
+    // --- CORE ---
+    function loadData() {
+        const key = `butce_${aylar[viewDate.getMonth()]}_${viewDate.getFullYear()}`;
+        const stored = localStorage.getItem(key);
+        entries = stored ? JSON.parse(stored) : [{ name: 'Maaş', amount: 0, type: 'gelir', status: 'pending', billDay: 1 }];
+        renderInitial();
+    }
+
+    function renderInitial() {
+        document.getElementById('display-month').innerText = aylar[viewDate.getMonth()] + " " + viewDate.getFullYear();
+        const container = document.getElementById('entries-container');
+        container.innerHTML = ''; 
+        entries.forEach((item, index) => {
+            const row = document.createElement('div'); row.className = 'entry-row';
+            const isG = item.type === 'gelir';
+            const sL = isG ? (item.status === 'paid' ? 'ALINDI' : 'BEKLENİYOR') : (item.status === 'paid' ? 'ÖDENDİ' : 'BEKLİYOR');
+            const sC = isG ? (item.status === 'paid' ? 'badge-received' : 'badge-awaiting') : (item.status === 'paid' ? 'badge-paid' : 'badge-pending');
+            
+            row.innerHTML = `
+                <div id="icon-box-${index}" style="font-size:18px;">${getIcon(item.name)}</div>
+                <input type="text" value="${item.name}" oninput="updateItem(${index}, 'name', this.value); document.getElementById('icon-box-${index}').innerText=getIcon(this.value)">
+                <input type="number" value="${item.amount}" oninput="updateItem(${index}, 'amount', this.value)">
+                <select onchange="updateItem(${index}, 'type', this.value); renderInitial();">
+                    <option value="gelir" ${isG ? 'selected' : ''}>Gelir</option>
+                    <option value="gider" ${!isG ? 'selected' : ''}>Gider</option>
+                </select>
+                <div class="status-badge ${sC}" onclick="toggleStatus(${index})">${sL}</div>
+                <button style="border:none; background:none; color:var(--text-dim); cursor:pointer;" onclick="removeRow(${index})">×</button>`;
+            container.appendChild(row);
+        });
+        calculate(); renderCalendar();
+    }
+
+    function updateItem(i, k, v) { 
+        entries[i][k] = (k==='amount' || k==='billDay') ? parseFloat(v)||0 : v; 
+        localStorage.setItem(`butce_${aylar[viewDate.getMonth()]}_${viewDate.getFullYear()}`, JSON.stringify(entries));
+        calculate(); 
+        if(['billDay', 'name', 'status'].includes(k)) renderCalendar();
+    }
+
+    function calculate() {
+        let inc = 0, exp = 0, pend = 0;
+        entries.forEach(i => {
+            if(i.type === 'gelir') inc += i.amount;
+            else if(i.status === 'paid') exp += i.amount;
+            else pend += i.amount;
+        });
+        const totalOut = exp + pend;
+        const perc = inc > 0 ? Math.min((totalOut / inc) * 100, 100) : 0;
+        document.getElementById('t-inc').innerText = inc.toLocaleString() + " TL";
+        document.getElementById('t-exp').innerText = exp.toLocaleString() + " TL";
+        document.getElementById('t-pend').innerText = pend.toLocaleString() + " TL";
+        document.getElementById('t-net').innerText = (inc - totalOut).toLocaleString() + " TL";
+        document.getElementById('progress-fill').style.width = perc + "%";
+        document.getElementById('progress-text').innerText = `HARCAMA ORANI: %${perc.toFixed(1)}`;
+    }
+
+    function renderCalendar() {
+        const body = document.getElementById('calendar-body');
+        body.innerHTML = '';
+        const days = new Date(viewDate.getFullYear(), viewDate.getMonth() + 1, 0).getDate();
+        for (let d = 1; d <= days; d++) {
+            const dayDiv = document.createElement('div'); dayDiv.className = 'cal-day';
+            dayDiv.innerHTML = `<span style="font-size:10px; font-weight:700;">${d}</span>`;
+            entries.filter(e => e.type === 'gider' && e.billDay === d).forEach(ev => {
+                dayDiv.innerHTML += `<div style="font-size:7px; background:${ev.status==='paid'?'#dcfce7':'#fef3c7'}; padding:2px; border-radius:3px; margin-top:2px; overflow:hidden;">${getIcon(ev.name)} ${ev.name}</div>`;
+            });
+            body.appendChild(dayDiv);
+        }
+    }
+
+    function renderSettings() {
+        const list = document.getElementById('settings-list');
+        list.innerHTML = '';
+        entries.filter(e => e.type === 'gider').forEach((item) => {
+            const idx = entries.indexOf(item);
+            const div = document.createElement('div');
+            div.style = "display:flex; justify-content:space-between; align-items:center; padding:10px; border-bottom:1px solid var(--border);";
+            div.innerHTML = `<div style="display:flex; align-items:center; gap:8px; font-size:12px;"><span>${getIcon(item.name)}</span><b>${item.name || 'İsimsiz'}</b></div>
+                <input type="number" value="${item.billDay || 1}" min="1" max="31" oninput="updateItem(${idx}, 'billDay', this.value)" style="width:50px; text-align:center;">`;
+            list.appendChild(div);
+        });
+    }
+
+    function generateYearlyReport() {
+        showModal('yearlyModal');
+        let html = `<table><thead><tr><th>AY</th><th>GELİR</th><th>GİDER</th><th>KALAN</th></tr></thead><tbody>`;
+        let yGelir = 0, yGider = 0;
+        aylar.forEach(ay => {
+            const data = JSON.parse(localStorage.getItem(`butce_${ay}_2026`)) || [];
+            let mGelir = 0, mGider = 0;
+            data.forEach(x => { if(x.type === 'gelir') mGelir += x.amount; else mGider += x.amount; });
+            yGelir += mGelir; yGider += mGider;
+            html += `<tr><td>${ay}</td><td>${mGelir.toLocaleString()} TL</td><td>${mGider.toLocaleString()} TL</td><td><b>${(mGelir-mGider).toLocaleString()} TL</b></td></tr>`;
+        });
+        html += `<tr style="background:var(--accent); color:white;"><td>TOPLAM</td><td>${yGelir.toLocaleString()}</td><td>${yGider.toLocaleString()}</td><td>${(yGelir-yGider).toLocaleString()}</td></tr></tbody></table>`;
+        document.getElementById('yearly-content').innerHTML = html;
+    }
+
+    function showChart() {
+        showModal('chartModal');
+        const ctx = document.getElementById('budgetChart').getContext('2d');
+        if (myChart) myChart.destroy();
+        let totalIncome = 0, totalExpense = 0, data = [], labels = [], colors = ['#4f46e5', '#f43f5e', '#f59e0b', '#06b6d4', '#8b5cf6', '#ec4899', '#22c55e'];
+        entries.forEach(e => {
+            if(e.type === 'gelir') totalIncome += e.amount;
+            else if(e.amount > 0) { totalExpense += e.amount; labels.push(e.name); data.push(e.amount); }
+        });
+        if (totalIncome > totalExpense) { labels.push('KALAN'); data.push(totalIncome - totalExpense); }
+        myChart = new Chart(ctx, { type: 'doughnut', data: { labels, datasets: [{ data, backgroundColor: colors }] }});
+    }
+
+    async function handleLogout() {
+        if(confirm("Tüm yerel veriler silinecek ve oturum kapatılacaktır. Devam edilsin mi?")) {
+            localStorage.clear(); location.reload();
+        }
+    }
+
+    function showToast(m, type='info') {
+        const t = document.createElement('div');
+        t.className = `toast-msg toast-${type}`;
+        const icon = type === 'success' ? '✅' : type === 'error' ? '❌' : 'ℹ️';
+        t.innerHTML = `<span>${icon}</span> <span>${m}</span>`;
+        document.body.appendChild(t);
+        setTimeout(() => t.classList.add('show'), 100);
+        setTimeout(() => { t.classList.remove('show'); setTimeout(() => t.remove(), 500); }, 3000);
+    }
+
+    function showModal(id) { document.getElementById(id).style.display = 'flex'; }
+    function closeModal(id) { document.getElementById(id).style.display = 'none'; }
+    function changeMonth(s) { viewDate.setMonth(viewDate.getMonth() + s); loadData(); }
+    function addRow() { entries.push({ name: '', amount: 0, type: 'gider', status: 'pending', billDay: 1 }); renderInitial(); }
+    function removeRow(i) { entries.splice(i, 1); updateItem(0,'',''); renderInitial(); }
+    function toggleStatus(i) { entries[i].status = entries[i].status === 'paid' ? 'pending' : 'paid'; updateItem(i, 'status', entries[i].status); renderInitial(); }
+    function toggleTheme() { const t = document.body.getAttribute('data-theme') === 'dark' ? 'light' : 'dark'; document.body.setAttribute('data-theme', t); }
+
+    window.onload = loadData;
+</script>
+</body>
+</html>
