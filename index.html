@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Bütçe Planlama Uygulaması V1L</title>
+  <title>Bütçe Planlama Uygulaması V1M</title>
 
   <meta http-equiv="Content-Security-Policy" content="
     default-src 'self';
@@ -104,10 +104,22 @@
     }
     .chip-state{ opacity:.7; }
 
-    .main-layout{
-      width:100%; max-width:1750px; display:grid; grid-template-columns:650px 1fr; gap:20px;
+    .page{
+      width:100%;
+      max-width:1750px;
+      display:flex;
+      flex-direction:column;
+      gap:15px;
       margin-bottom:15px;
     }
+
+    .main-layout{
+      width:100%;
+      display:grid;
+      grid-template-columns:650px 1fr;
+      gap:20px;
+    }
+
     .left-panel{ display:flex; flex-direction:column; gap:10px; }
     .widget-card{ background:var(--card-bg); border-radius:12px; border:1px solid var(--border); overflow:hidden; }
     .widget-header{ background:var(--header-bg); padding:6px 15px; font-size:.7rem; font-weight:800; color:var(--text-dim); text-transform:uppercase; }
@@ -217,7 +229,8 @@
     .val-pend{ color:#f59e0b; }
 
     .calendar-section{
-      width:100%; max-width:1750px; background:var(--card-bg); padding:15px 25px; border-radius:20px;
+      width:100%;
+      background:var(--card-bg); padding:15px 25px; border-radius:20px;
       border:1px solid var(--border); box-shadow:0 4px 20px rgba(0,0,0,0.03);
     }
     .calendar-title{ font-weight:900; font-size:.95rem; }
@@ -285,7 +298,6 @@
 
     .footer{ margin:18px 0 10px; font-size:10px; color:var(--text-dim); opacity:.65; }
 
-    /* yearly table polish */
     .ytable{
       width:100%;
       border-collapse:separate;
@@ -309,22 +321,48 @@
     }
     .ytable td:first-child{ font-weight:900; }
 
-    /* =========================================================
-       SADECE MOBİL: tablo kısmını (entry-head + satırlar) oran bozmadan ölçekle
-       PC/tablet görünümüne dokunmaz.
-       ========================================================= */
-    .table-scale-outer{ display:block; width:100%; }
-    .table-scale-inner{ display:block; width:auto; transform:none; transform-origin:top left; }
-
+    /* MOBİL: ALTIN / VERİ / TAKVİM AYRI BLOK + yatay taşmayı kontrollü scroll */
     @media (max-width: 900px){
-      .table-scale-outer{
-        overflow:hidden; /* yatay taşma yok */
+      body{ padding:8px; }
+
+      .app-header{
+        padding:10px 12px;
+        gap:10px;
+        flex-wrap:wrap;
       }
-      .table-scale-inner{
-        width:980px;                 /* referans genişlik */
-        transform:scale(var(--tblScale, 1));
-        will-change:transform;
+      .header-right{ width:100%; justify-content:flex-start; flex-wrap:wrap; }
+      .header-left{ width:100%; justify-content:space-between; }
+
+      .page{ gap:12px; }
+
+      .main-layout{
+        grid-template-columns: 1fr;
+        gap:12px;
       }
+
+      .left-panel{ gap:12px; }
+      .widget-card{ border-radius:16px; }
+      .budget-card{ border-radius:16px; padding:16px; }
+
+      .calendar-section{
+        padding:14px 14px;
+        border-radius:16px;
+      }
+
+      .entry-head,
+      .entry-row{
+        min-width: 980px;
+      }
+      .budget-card{
+        overflow-x:auto;
+        -webkit-overflow-scrolling: touch;
+      }
+      .sticky-controls{ position:static; }
+
+      .summary-grid{ grid-template-columns:1fr; }
+      .control-bar{ grid-template-columns:1fr 1fr; }
+      .quick-add{ grid-template-columns:1fr; }
+      .calendar-grid{ grid-template-columns:repeat(7, minmax(0,1fr)); }
     }
   </style>
 </head>
@@ -332,7 +370,7 @@
 <body>
   <div class="app-header">
     <div class="header-left">
-      <h1 class="app-title">Bütçe Planlama <span class="app-ver">V1L</span></h1>
+      <h1 class="app-title">Bütçe Planlama <span class="app-ver">V1M</span></h1>
       <div id="user-info" class="user-info hidden">
         <img id="user-img" alt="user" src="" class="user-img">
         <span id="user-email" class="user-email"></span>
@@ -357,124 +395,120 @@
     </div>
   </div>
 
-  <div class="main-layout">
-    <div class="left-panel">
-      <div class="widget-card">
-        <div class="widget-header">24 AYAR GRAM</div>
-        <div class="crop-box">
-          <iframe src="https://www.altinkaynak.com/canli-kurlar/altin"
-                  id="frame-gram"
-                  loading="lazy"
-                  referrerpolicy="no-referrer"
-                  sandbox="allow-scripts allow-same-origin"></iframe>
+  <div class="page">
+    <div class="main-layout">
+      <div class="left-panel">
+        <div class="widget-card">
+          <div class="widget-header">24 AYAR GRAM</div>
+          <div class="crop-box">
+            <iframe src="https://www.altinkaynak.com/canli-kurlar/altin"
+                    id="frame-gram"
+                    loading="lazy"
+                    referrerpolicy="no-referrer"
+                    sandbox="allow-scripts allow-same-origin"></iframe>
+          </div>
+        </div>
+
+        <div class="widget-card">
+          <div class="widget-header">ÇEYREK ALTIN</div>
+          <div class="crop-box">
+            <iframe src="https://www.altinkaynak.com/canli-kurlar/altin"
+                    id="frame-ceyrek"
+                    loading="lazy"
+                    referrerpolicy="no-referrer"
+                    sandbox="allow-scripts allow-same-origin"></iframe>
+          </div>
+        </div>
+
+        <div class="widget-card">
+          <div class="widget-header">DOLAR & EURO</div>
+          <div class="crop-box currency-box">
+            <iframe src="https://www.altinkaynak.com/canli-kurlar/doviz"
+                    id="frame-doviz"
+                    loading="lazy"
+                    referrerpolicy="no-referrer"
+                    sandbox="allow-scripts allow-same-origin"></iframe>
+          </div>
         </div>
       </div>
 
-      <div class="widget-card">
-        <div class="widget-header">ÇEYREK ALTIN</div>
-        <div class="crop-box">
-          <iframe src="https://www.altinkaynak.com/canli-kurlar/altin"
-                  id="frame-ceyrek"
-                  loading="lazy"
-                  referrerpolicy="no-referrer"
-                  sandbox="allow-scripts allow-same-origin"></iframe>
-        </div>
-      </div>
+      <div class="budget-card">
+        <div class="sticky-controls">
+          <div class="top-row">
+            <div class="month-nav">
+              <button id="btn_prev" type="button" class="btn"><span class="ico">←</span>Geri</button>
+              <span id="display-month" class="display-month"></span>
+              <button id="btn_next" type="button" class="btn">İleri<span class="ico">→</span></button>
+            </div>
 
-      <div class="widget-card">
-        <div class="widget-header">DOLAR & EURO</div>
-        <div class="crop-box currency-box">
-          <iframe src="https://www.altinkaynak.com/canli-kurlar/doviz"
-                  id="frame-doviz"
-                  loading="lazy"
-                  referrerpolicy="no-referrer"
-                  sandbox="allow-scripts allow-same-origin"></iframe>
+            <div class="toolbar">
+              <button id="btn_search" type="button" class="btn btn-tool" title="Ara / Filtre"><span class="ico">🔎</span>Ara</button>
+              <button id="btn_yearly" type="button" class="btn btn-tool"><span class="ico">📅</span>Yıllık</button>
+              <button id="btn_chart" type="button" class="btn btn-tool"><span class="ico">📊</span>Analiz</button>
+              <button id="btn_pdf" type="button" class="btn btn-tool"><span class="ico">🧾</span>PDF</button>
+              <button id="btn_settings" type="button" class="btn btn-tool"><span class="ico">⚙️</span>Ayarlar</button>
+            </div>
+          </div>
+
+          <div class="muted" id="progress-text">HARCAMA ORANI: %0</div>
+          <div class="progress-wrap"><div id="progress-fill" class="progress-fill"></div></div>
+
+          <div class="quick-add">
+            <input id="quick_input" placeholder="Hızlı ekle: örn 'kira 8500 5 gider' / 'maaş 45000 1 gelir'">
+            <button id="btn_quick_add" class="btn" type="button"><span class="ico">➕</span>Hızlı Ekle</button>
+          </div>
+
+          <div id="search_panel" class="control-bar hidden">
+            <input id="f_search" placeholder="Ara (isim/etiket)">
+            <select id="f_type">
+              <option value="all">Tür: Hepsi</option>
+              <option value="gelir">Tür: Gelir</option>
+              <option value="gider">Tür: Gider</option>
+            </select>
+            <select id="f_status">
+              <option value="all">Durum: Hepsi</option>
+              <option value="paid">Durum: Ödendi/Alındı</option>
+              <option value="pending">Durum: Bekliyor</option>
+              <option value="overdue">Durum: Gecikti</option>
+            </select>
+            <select id="f_cat">
+              <option value="all">Kategori: Hepsi</option>
+            </select>
+            <select id="f_sort">
+              <option value="day_asc">Sırala: Gün ↑</option>
+              <option value="day_desc">Sırala: Gün ↓</option>
+              <option value="amt_desc">Sırala: Tutar ↓</option>
+              <option value="amt_asc">Sırala: Tutar ↑</option>
+              <option value="name_asc">Sırala: İsim A-Z</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="entry-head">
+          <div></div><div>İşlem</div><div>Tutar</div><div>Tür</div><div>Kategori</div><div>Gün</div><div>Tekrar</div><div>Durum</div><div></div>
+        </div>
+        <div id="entries-container"></div>
+
+        <button id="btn_add" type="button" class="btn btn-add-row"><span class="ico">➕</span>Yeni İşlem</button>
+
+        <div class="summary-grid">
+          <div class="stat"><small>GELİR (ALINAN)</small><div class="val val-inc" id="t-inc">0 TL</div></div>
+          <div class="stat"><small>GELİR (BEKLEYEN)</small><div class="val val-incp" id="t-incp">0 TL</div></div>
+          <div class="stat"><small>GİDER (ÖDENEN)</small><div class="val val-exp" id="t-exp">0 TL</div></div>
+          <div class="stat"><small>GİDER (BEKLEYEN)</small><div class="val val-pend" id="t-pend">0 TL</div></div>
+          <div class="stat net"><small>NET (TAHMİNİ)</small><div class="val" id="t-net">0 TL</div></div>
         </div>
       </div>
     </div>
 
-    <div class="budget-card">
-      <div class="sticky-controls">
-        <div class="top-row">
-          <div class="month-nav">
-            <button id="btn_prev" type="button" class="btn"><span class="ico">←</span>Geri</button>
-            <span id="display-month" class="display-month"></span>
-            <button id="btn_next" type="button" class="btn">İleri<span class="ico">→</span></button>
-          </div>
-
-          <div class="toolbar">
-            <button id="btn_search" type="button" class="btn btn-tool" title="Ara / Filtre"><span class="ico">🔎</span>Ara</button>
-            <button id="btn_yearly" type="button" class="btn btn-tool"><span class="ico">📅</span>Yıllık</button>
-            <button id="btn_chart" type="button" class="btn btn-tool"><span class="ico">📊</span>Analiz</button>
-            <button id="btn_pdf" type="button" class="btn btn-tool"><span class="ico">🧾</span>PDF</button>
-            <button id="btn_settings" type="button" class="btn btn-tool"><span class="ico">⚙️</span>Ayarlar</button>
-          </div>
-        </div>
-
-        <div class="muted" id="progress-text">HARCAMA ORANI: %0</div>
-        <div class="progress-wrap"><div id="progress-fill" class="progress-fill"></div></div>
-
-        <div class="quick-add">
-          <input id="quick_input" placeholder="Hızlı ekle: örn 'kira 8500 5 gider' / 'maaş 45000 1 gelir'">
-          <button id="btn_quick_add" class="btn" type="button"><span class="ico">➕</span>Hızlı Ekle</button>
-        </div>
-
-        <div id="search_panel" class="control-bar hidden">
-          <input id="f_search" placeholder="Ara (isim/etiket)">
-          <select id="f_type">
-            <option value="all">Tür: Hepsi</option>
-            <option value="gelir">Tür: Gelir</option>
-            <option value="gider">Tür: Gider</option>
-          </select>
-          <select id="f_status">
-            <option value="all">Durum: Hepsi</option>
-            <option value="paid">Durum: Ödendi/Alındı</option>
-            <option value="pending">Durum: Bekliyor</option>
-            <option value="overdue">Durum: Gecikti</option>
-          </select>
-          <select id="f_cat">
-            <option value="all">Kategori: Hepsi</option>
-          </select>
-          <select id="f_sort">
-            <option value="day_asc">Sırala: Gün ↑</option>
-            <option value="day_desc">Sırala: Gün ↓</option>
-            <option value="amt_desc">Sırala: Tutar ↓</option>
-            <option value="amt_asc">Sırala: Tutar ↑</option>
-            <option value="name_asc">Sırala: İsim A-Z</option>
-          </select>
-        </div>
-      </div>
-
-      <!-- SADECE MOBİL ÖLÇEK: başlık + satırlar birlikte -->
-      <div class="table-scale-outer" id="tableScaleOuter">
-        <div class="table-scale-inner" id="tableScaleInner">
-          <div class="entry-head">
-            <div></div><div>İşlem</div><div>Tutar</div><div>Tür</div><div>Kategori</div><div>Gün</div><div>Tekrar</div><div>Durum</div><div></div>
-          </div>
-          <div id="entries-container"></div>
-        </div>
-      </div>
-
-      <button id="btn_add" type="button" class="btn btn-add-row"><span class="ico">➕</span>Yeni İşlem</button>
-
-      <div class="summary-grid">
-        <div class="stat"><small>GELİR (ALINAN)</small><div class="val val-inc" id="t-inc">0 TL</div></div>
-        <div class="stat"><small>GELİR (BEKLEYEN)</small><div class="val val-incp" id="t-incp">0 TL</div></div>
-        <div class="stat"><small>GİDER (ÖDENEN)</small><div class="val val-exp" id="t-exp">0 TL</div></div>
-        <div class="stat"><small>GİDER (BEKLEYEN)</small><div class="val val-pend" id="t-pend">0 TL</div></div>
-        <div class="stat net"><small>NET (TAHMİNİ)</small><div class="val" id="t-net">0 TL</div></div>
-      </div>
+    <div class="calendar-section">
+      <div class="calendar-title"><span class="ico">📆</span>Ödeme Takvimi</div>
+      <div class="calendar-grid" id="calendar-body"></div>
     </div>
-  </div>
-
-  <div class="calendar-section">
-    <div class="calendar-title"><span class="ico">📆</span>Ödeme Takvimi</div>
-    <div class="calendar-grid" id="calendar-body"></div>
   </div>
 
   <div class="footer">umtdvr</div>
 
-  <!-- ANALIZ MODAL -->
   <div id="chartModal" class="modal-overlay hidden">
     <div class="modal">
       <button class="closex" type="button" data-close="chartModal">×</button>
@@ -503,7 +537,6 @@
     </div>
   </div>
 
-  <!-- SETTINGS MODAL -->
   <div id="settingsModal" class="modal-overlay hidden">
     <div class="modal">
       <button class="closex" type="button" data-close="settingsModal">×</button>
@@ -534,7 +567,6 @@
     </div>
   </div>
 
-  <!-- YEARLY MODAL -->
   <div id="yearlyModal" class="modal-overlay hidden">
     <div class="modal">
       <button class="closex" type="button" data-close="yearlyModal">×</button>
@@ -583,7 +615,6 @@
       let autoBackupTimer = null;
       const AUTO_BACKUP_DEBOUNCE_MS = 30000;
 
-      // ANALIZ GRAFIKLERI
       let chartMonth = null;
       let chartTrend = null;
       let chartCat = null;
@@ -617,20 +648,14 @@
       function showModal(id){ $(id).classList.remove('hidden'); }
       function closeModal(id){ $(id).classList.add('hidden'); }
 
-      function safeJsonParse(raw, fallback) {
-        try { return JSON.parse(raw); } catch { return fallback; }
-      }
+      function safeJsonParse(raw, fallback) { try { return JSON.parse(raw); } catch { return fallback; } }
       function safeSetItem(key, value) {
-        try { localStorage.setItem(key, value); return true; } catch { toast('Depolama hatası', 'err'); return false; }
+        try { localStorage.setItem(key, value); return true; }
+        catch { toast('Depolama hatası', 'err'); return false; }
       }
 
-      function applyTheme(theme) {
-        document.body.setAttribute('data-theme', theme === 'dark' ? 'dark' : 'light');
-      }
-      function loadTheme() {
-        const t = localStorage.getItem(THEME_KEY);
-        applyTheme(t === 'dark' ? 'dark' : 'light');
-      }
+      function applyTheme(theme) { document.body.setAttribute('data-theme', theme === 'dark' ? 'dark' : 'light'); }
+      function loadTheme() { const t = localStorage.getItem(THEME_KEY); applyTheme(t === 'dark' ? 'dark' : 'light'); }
       function toggleTheme() {
         const cur = document.body.getAttribute('data-theme') === 'dark' ? 'dark' : 'light';
         const next = cur === 'dark' ? 'light' : 'dark';
@@ -737,8 +762,6 @@
         });
         safeSetItem(key, JSON.stringify(norm));
         scheduleAutoBackup();
-        // mobil ölçek yüksekliği satır değişimlerinde güncellensin
-        requestAnimationFrame(() => { try { applyMobileTableScaleOnce(); } catch {} });
       }
 
       function scheduleAutoBackup() {
@@ -845,9 +868,7 @@
         $('auth_controls').classList.toggle('hidden', !isAuthed);
       }
 
-      function renderMonthTitle() {
-        $('display-month').textContent = `${aylar[viewDate.getMonth()]} ${viewDate.getFullYear()}`;
-      }
+      function renderMonthTitle() { $('display-month').textContent = `${aylar[viewDate.getMonth()]} ${viewDate.getFullYear()}`; }
 
       function renderFilters() {
         const sel = $('f_cat');
@@ -1071,9 +1092,6 @@
 
           host.appendChild(row);
         });
-
-        // mobil ölçek: satırlar çizildikten sonra tekrar ölç
-        requestAnimationFrame(() => { try { applyMobileTableScaleOnce(); } catch {} });
       }
 
       function renderCalendar() {
@@ -1115,9 +1133,6 @@
         renderCalendar();
       }
 
-      // =========================
-      // YILLIK TABLO
-      // =========================
       function buildYearlyTable(year){
         const wrap = document.createElement('div');
 
@@ -1193,9 +1208,6 @@
         return wrap;
       }
 
-      // =========================
-      // ANALIZ: TAB + GRAFİK
-      // =========================
       function ensureCharts(){
         if (typeof Chart === 'undefined') return false;
 
@@ -1324,68 +1336,13 @@
         });
       }
 
-      // =========================
-      // SADECE MOBİL TABLO ÖLÇEK (PC'ye dokunmaz)
-      // =========================
-      const MOBILE_MQ = window.matchMedia('(max-width: 900px)');
-      let mobileScaleRO = null;
-
-      function applyMobileTableScaleOnce(){
-        if (!MOBILE_MQ.matches) {
-          const outer = $('tableScaleOuter');
-          const inner = $('tableScaleInner');
-          if (outer) outer.style.height = '';
-          if (inner) inner.style.setProperty('--tblScale', '1');
-          return;
-        }
-
-        const outer = $('tableScaleOuter');
-        const inner = $('tableScaleInner');
-        if (!outer || !inner) return;
-
-        const baseW = 980; // CSS ile aynı
-        const ow = outer.clientWidth || baseW;
-        const scale = Math.min(1, ow / baseW);
-
-        inner.style.setProperty('--tblScale', String(scale));
-
-        // yükseklik düzelt (transform yüksekliği otomatik akışa yansımaz)
-        const rect = inner.getBoundingClientRect();
-        outer.style.height = `${rect.height}px`;
-      }
-
-      function initMobileTableScale(){
-        // sadece mobilde ResizeObserver aktif
-        if (!('ResizeObserver' in window)) { applyMobileTableScaleOnce(); return; }
-
-        const outer = $('tableScaleOuter');
-        if (!outer) return;
-
-        if (mobileScaleRO) { try { mobileScaleRO.disconnect(); } catch {} mobileScaleRO = null; }
-
-        mobileScaleRO = new ResizeObserver(() => applyMobileTableScaleOnce());
-        mobileScaleRO.observe(outer);
-
-        // breakpoint değişince yeniden uygula
-        MOBILE_MQ.addEventListener('change', () => {
-          applyMobileTableScaleOnce();
-        });
-
-        applyMobileTableScaleOnce();
-      }
-
-      // =========================
-      // DRIVE
-      // =========================
       async function driveRequest(url, options = {}) {
         if (!accessToken) throw new Error('NO_TOKEN');
         const res = await fetch(url, { ...options, headers: { ...(options.headers||{}), Authorization: `Bearer ${accessToken}` } });
         const txt = await res.text().catch(()=> '');
         if (!res.ok) throw new Error(`DRIVE_${res.status}: ${txt.slice(0,180)}`);
         const ct = res.headers.get('content-type') || '';
-        if (ct.includes('application/json')) {
-          try { return JSON.parse(txt || '{}'); } catch { return {}; }
-        }
+        if (ct.includes('application/json')) { try { return JSON.parse(txt || '{}'); } catch { return {}; } }
         return txt;
       }
 
@@ -1479,9 +1436,6 @@
         toast('Bulut eşitlendi', 'info');
       }
 
-      // =========================
-      // SESSION
-      // =========================
       function formatMMSS(ms) {
         const t = Math.max(0, Math.ceil(ms/1000));
         const mm = String(Math.floor(t/60)).padStart(2,'0');
@@ -1575,9 +1529,6 @@
         window.addEventListener('mousemove', touchSessionFromMouseMove, { passive:true });
       }
 
-      // =========================
-      // AUTH
-      // =========================
       function initTokenClient() {
         tokenClient = google.accounts.oauth2.initTokenClient({
           client_id: CLIENT_ID,
@@ -1602,9 +1553,6 @@
         tokenClient.requestAccessToken();
       }
 
-      // =========================
-      // UI helpers (quick add)
-      // =========================
       function inferCategory(name) {
         const n = (name || '').toLowerCase();
         const rules = [
@@ -1649,9 +1597,6 @@
         return { name, amount, day, type, repeat };
       }
 
-      // =========================
-      // EVENTS
-      // =========================
       function bindEvents() {
         $('auth_btn').addEventListener('click', handleAuthClick);
         $('btn_backup').addEventListener('click', async () => { try { await syncToDrive(false); } catch (e) { toast(String(e?.message||e), 'err'); }});
@@ -1678,10 +1623,7 @@
           showModal('yearlyModal');
         });
 
-        $('btn_chart').addEventListener('click', () => {
-          showModal('chartModal');
-          updateAnalysisCharts();
-        });
+        $('btn_chart').addEventListener('click', () => { showModal('chartModal'); updateAnalysisCharts(); });
 
         $('btn_pdf').addEventListener('click', () => {
           const element = document.querySelector('.budget-card');
@@ -1691,10 +1633,7 @@
 
         $('btn_settings').addEventListener('click', () => { renderCategoryChips(); showModal('settingsModal'); });
 
-        $('btn_search').addEventListener('click', () => {
-          const p = $('search_panel');
-          p.classList.toggle('hidden');
-        });
+        $('btn_search').addEventListener('click', () => { $('search_panel').classList.toggle('hidden'); });
 
         $('btn_quick_add').addEventListener('click', () => {
           const q = $('quick_input').value;
@@ -1789,9 +1728,6 @@
         bindEvents();
         bindSessionActivity();
         bindChartTabs();
-
-        // SADECE MOBİL ÖLÇEK AKTİF
-        initMobileTableScale();
 
         setAuthUi(false);
         setCountdownVisible(false);
