@@ -308,6 +308,74 @@
       font-weight:700;
     }
     .ytable td:first-child{ font-weight:900; }
+
+    /* =========================
+       MOBILE RESPONSIVE FIX (CSS only)
+       ========================= */
+
+    /* 1) Genel taşma kontrolü */
+    html, body { max-width: 100%; overflow-x: hidden; }
+
+    /* 2) İşlem tablosu: mobilde bozulmasın, yatay kaydır */
+    .budget-card { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+    .entry-head, .entry-row { min-width: 980px; }
+
+    /* 3) 1100px altı: iki kolon -> tek kolon */
+    @media (max-width: 1100px){
+      .main-layout{ grid-template-columns: 1fr; gap:12px; }
+      .left-panel{ order: 2; }
+      .budget-card{ order: 1; }
+    }
+
+    /* 4) 820px altı: header + kontroller + özet grid */
+    @media (max-width: 820px){
+      body{ padding:8px; }
+
+      .app-header{
+        padding:10px 12px;
+        gap:10px;
+        flex-wrap:wrap;
+      }
+      .header-left, .header-right{ flex-wrap:wrap; gap:10px; }
+      .app-title{ font-size:1.05rem; }
+
+      .budget-card{
+        padding:14px 14px;
+        border-radius:16px;
+      }
+
+      .sticky-controls{
+        position:static; top:auto;
+        padding-bottom:10px;
+      }
+
+      .top-row{ gap:8px; }
+      .display-month{ min-width:140px; }
+
+      .toolbar{ justify-content:flex-start; }
+      .month-nav{ width:100%; justify-content:space-between; }
+
+      /* Arama/Filtre satırı: 5 kolon -> 2 kolon */
+      .control-bar{ grid-template-columns: 1fr 1fr; }
+
+      /* Hızlı ekle: 2 kolon -> tek kolon */
+      .quick-add{ grid-template-columns: 1fr; }
+
+      /* Özet: 5 kolon -> 2 kolon */
+      .summary-grid{ grid-template-columns: repeat(2, 1fr); }
+
+      /* Takvim kartı */
+      .calendar-section{ padding:12px 12px; border-radius:16px; }
+      .cal-day{ min-height:56px; padding:5px; }
+      .pill{ font-size:8px; }
+    }
+
+    /* 5) 480px altı: özet tek kolon + butonlar sıkışmasın */
+    @media (max-width: 480px){
+      .summary-grid{ grid-template-columns: 1fr; }
+      .btn{ padding:8px 10px; }
+      .google-btn{ padding:8px 12px; font-size:13px; }
+    }
   </style>
 </head>
 
@@ -1605,7 +1673,6 @@
           showModal('yearlyModal');
         });
 
-        // FIX: ANALIZ ARTIK ÇALIŞIR
         $('btn_chart').addEventListener('click', () => {
           showModal('chartModal');
           updateAnalysisCharts();
@@ -1732,9 +1799,3 @@
   </script>
 </body>
 </html>
-
-
-
-
-
-
