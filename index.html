@@ -309,72 +309,22 @@
     }
     .ytable td:first-child{ font-weight:900; }
 
-    /* =========================
-       MOBILE RESPONSIVE FIX (CSS only)
-       ========================= */
+    /* =========================================================
+       SADECE MOBİL: tablo kısmını (entry-head + satırlar) oran bozmadan ölçekle
+       PC/tablet görünümüne dokunmaz.
+       ========================================================= */
+    .table-scale-outer{ display:block; width:100%; }
+    .table-scale-inner{ display:block; width:auto; transform:none; transform-origin:top left; }
 
-    /* 1) Genel taşma kontrolü */
-    html, body { max-width: 100%; overflow-x: hidden; }
-
-    /* 2) İşlem tablosu: mobilde bozulmasın, yatay kaydır */
-    .budget-card { overflow-x: auto; -webkit-overflow-scrolling: touch; }
-    .entry-head, .entry-row { min-width: 980px; }
-
-    /* 3) 1100px altı: iki kolon -> tek kolon */
-    @media (max-width: 1100px){
-      .main-layout{ grid-template-columns: 1fr; gap:12px; }
-      .left-panel{ order: 2; }
-      .budget-card{ order: 1; }
-    }
-
-    /* 4) 820px altı: header + kontroller + özet grid */
-    @media (max-width: 820px){
-      body{ padding:8px; }
-
-      .app-header{
-        padding:10px 12px;
-        gap:10px;
-        flex-wrap:wrap;
+    @media (max-width: 900px){
+      .table-scale-outer{
+        overflow:hidden; /* yatay taşma yok */
       }
-      .header-left, .header-right{ flex-wrap:wrap; gap:10px; }
-      .app-title{ font-size:1.05rem; }
-
-      .budget-card{
-        padding:14px 14px;
-        border-radius:16px;
+      .table-scale-inner{
+        width:980px;                 /* referans genişlik */
+        transform:scale(var(--tblScale, 1));
+        will-change:transform;
       }
-
-      .sticky-controls{
-        position:static; top:auto;
-        padding-bottom:10px;
-      }
-
-      .top-row{ gap:8px; }
-      .display-month{ min-width:140px; }
-
-      .toolbar{ justify-content:flex-start; }
-      .month-nav{ width:100%; justify-content:space-between; }
-
-      /* Arama/Filtre satırı: 5 kolon -> 2 kolon */
-      .control-bar{ grid-template-columns: 1fr 1fr; }
-
-      /* Hızlı ekle: 2 kolon -> tek kolon */
-      .quick-add{ grid-template-columns: 1fr; }
-
-      /* Özet: 5 kolon -> 2 kolon */
-      .summary-grid{ grid-template-columns: repeat(2, 1fr); }
-
-      /* Takvim kartı */
-      .calendar-section{ padding:12px 12px; border-radius:16px; }
-      .cal-day{ min-height:56px; padding:5px; }
-      .pill{ font-size:8px; }
-    }
-
-    /* 5) 480px altı: özet tek kolon + butonlar sıkışmasın */
-    @media (max-width: 480px){
-      .summary-grid{ grid-template-columns: 1fr; }
-      .btn{ padding:8px 10px; }
-      .google-btn{ padding:8px 12px; font-size:13px; }
     }
   </style>
 </head>
@@ -495,10 +445,15 @@
         </div>
       </div>
 
-      <div class="entry-head">
-        <div></div><div>İşlem</div><div>Tutar</div><div>Tür</div><div>Kategori</div><div>Gün</div><div>Tekrar</div><div>Durum</div><div></div>
+      <!-- SADECE MOBİL ÖLÇEK: başlık + satırlar birlikte -->
+      <div class="table-scale-outer" id="tableScaleOuter">
+        <div class="table-scale-inner" id="tableScaleInner">
+          <div class="entry-head">
+            <div></div><div>İşlem</div><div>Tutar</div><div>Tür</div><div>Kategori</div><div>Gün</div><div>Tekrar</div><div>Durum</div><div></div>
+          </div>
+          <div id="entries-container"></div>
+        </div>
       </div>
-      <div id="entries-container"></div>
 
       <button id="btn_add" type="button" class="btn btn-add-row"><span class="ico">➕</span>Yeni İşlem</button>
 
@@ -782,6 +737,8 @@
         });
         safeSetItem(key, JSON.stringify(norm));
         scheduleAutoBackup();
+        // mobil ölçek yüksekliği satır değişimlerinde güncellensin
+        requestAnimationFrame(() => { try { applyMobileTableScaleOnce(); } catch {} });
       }
 
       function scheduleAutoBackup() {
@@ -1114,6 +1071,9 @@
 
           host.appendChild(row);
         });
+
+        // mobil ölçek: satırlar çizildikten sonra tekrar ölç
+        requestAnimationFrame(() => { try { applyMobileTableScaleOnce(); } catch {} });
       }
 
       function renderCalendar() {
@@ -1156,7 +1116,7 @@
       }
 
       // =========================
-      // YILLIK TABLO (EKSİKTİ)
+      // YILLIK TABLO
       // =========================
       function buildYearlyTable(year){
         const wrap = document.createElement('div');
@@ -1234,7 +1194,7 @@
       }
 
       // =========================
-      // ANALIZ (EKSİKTİ): TAB + GRAFİK ÜRETİMİ
+      // ANALIZ: TAB + GRAFİK
       // =========================
       function ensureCharts(){
         if (typeof Chart === 'undefined') return false;
@@ -1299,11 +1259,9 @@
         const list = entries.map(e => normalizeEntry(e, y, m));
         const s = calculateMonth(list, y, m);
 
-        // Donut: bu ay tahmin
         chartMonth.data.datasets[0].data = [s.incForecast, s.outForecast];
         chartMonth.update();
 
-        // Trend: son 12 ay
         const labels = [];
         const incArr = [];
         const outArr = [];
@@ -1327,7 +1285,6 @@
         chartTrend.data.datasets[2].data = netArr;
         chartTrend.update();
 
-        // Kategori: bu ay giderler
         const catMap = new Map();
         for (const e of list){
           if (e.type !== 'gider') continue;
@@ -1343,7 +1300,6 @@
         chartCat.data.datasets[0].data = catVals.length ? catVals : [0];
         chartCat.update();
 
-        // Modal açılınca ölçü problemi varsa
         requestAnimationFrame(() => {
           try { chartMonth.resize(); chartTrend.resize(); chartCat.resize(); } catch {}
         });
@@ -1359,7 +1315,6 @@
             const pane = document.getElementById(target);
             if (pane) pane.classList.add('active');
 
-            // Sekme değişince chart'lar bozulmasın
             requestAnimationFrame(() => {
               try { chartMonth && chartMonth.resize(); } catch {}
               try { chartTrend && chartTrend.resize(); } catch {}
@@ -1367,6 +1322,56 @@
             });
           });
         });
+      }
+
+      // =========================
+      // SADECE MOBİL TABLO ÖLÇEK (PC'ye dokunmaz)
+      // =========================
+      const MOBILE_MQ = window.matchMedia('(max-width: 900px)');
+      let mobileScaleRO = null;
+
+      function applyMobileTableScaleOnce(){
+        if (!MOBILE_MQ.matches) {
+          const outer = $('tableScaleOuter');
+          const inner = $('tableScaleInner');
+          if (outer) outer.style.height = '';
+          if (inner) inner.style.setProperty('--tblScale', '1');
+          return;
+        }
+
+        const outer = $('tableScaleOuter');
+        const inner = $('tableScaleInner');
+        if (!outer || !inner) return;
+
+        const baseW = 980; // CSS ile aynı
+        const ow = outer.clientWidth || baseW;
+        const scale = Math.min(1, ow / baseW);
+
+        inner.style.setProperty('--tblScale', String(scale));
+
+        // yükseklik düzelt (transform yüksekliği otomatik akışa yansımaz)
+        const rect = inner.getBoundingClientRect();
+        outer.style.height = `${rect.height}px`;
+      }
+
+      function initMobileTableScale(){
+        // sadece mobilde ResizeObserver aktif
+        if (!('ResizeObserver' in window)) { applyMobileTableScaleOnce(); return; }
+
+        const outer = $('tableScaleOuter');
+        if (!outer) return;
+
+        if (mobileScaleRO) { try { mobileScaleRO.disconnect(); } catch {} mobileScaleRO = null; }
+
+        mobileScaleRO = new ResizeObserver(() => applyMobileTableScaleOnce());
+        mobileScaleRO.observe(outer);
+
+        // breakpoint değişince yeniden uygula
+        MOBILE_MQ.addEventListener('change', () => {
+          applyMobileTableScaleOnce();
+        });
+
+        applyMobileTableScaleOnce();
       }
 
       // =========================
@@ -1784,6 +1789,9 @@
         bindEvents();
         bindSessionActivity();
         bindChartTabs();
+
+        // SADECE MOBİL ÖLÇEK AKTİF
+        initMobileTableScale();
 
         setAuthUi(false);
         setCountdownVisible(false);
